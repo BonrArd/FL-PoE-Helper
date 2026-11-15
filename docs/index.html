@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PConc Helper — overlay em português para Path of Exile</title>
+<title>FL PoE Helper — overlay em português para Path of Exile</title>
 <meta name="description" content="Guia ato a ato, árvore de passivos, checagem de chefes, price check, comparador de itens e IA para a sua build. Grátis, em português.">
 <link rel="icon" href="icone.png">
-<meta property="og:title" content="PConc Helper — overlay em português para Path of Exile">
+<meta property="og:title" content="FL PoE Helper — overlay em português para Path of Exile">
 <meta property="og:description" content="Guia ato a ato, árvore, chefes, price check, comparador e IA. Grátis.">
 <meta property="og:image" content="icone.png">
 <style>
@@ -115,7 +115,7 @@
 <header>
   <div class="wrap">
     <nav>
-      <a class="brand serif" href="#"><img src="icone.png" alt="">PConc Helper</a>
+      <a class="brand serif" href="#"><img src="icone.png" alt="">FL PoE Helper</a>
       <div class="links">
         <a href="#recursos">Recursos</a><a href="#como">Como usar</a><a href="#teclas">Teclas</a><a href="#faq">Dúvidas</a>
         <a class="repo-link" href="#">GitHub</a>
@@ -133,7 +133,7 @@
         </div>
         <p class="small" style="margin-top:12px">Um arquivo .exe só, sem instalar. Windows 10/11.</p>
       </div>
-      <div class="flask"><img src="icone.png" alt="Ícone do PConc Helper: frasco de veneno verde com as letras FL"></div>
+      <div class="flask"><img src="icone.png" alt="Ícone do FL PoE Helper: frasco de veneno verde com as letras FL"></div>
     </div>
   </div>
 </header>
@@ -162,7 +162,7 @@
     </div>
     <div class="grid" style="margin-top:16px">
       <div class="card"><div class="ic">⏱</div><h3>Tempo e mortes</h3><p>Tempo por ato que pausa quando você para, contador de mortes e penalidade de XP da área.</p></div>
-      <div class="card"><div class="ic">🧪</div><h3>Filtro de loot</h3><p>Filtro no estilo NeverSink com as cores de sempre, ajustado para a build.</p></div>
+      <div class="card"><div class="ic">🔓</div><h3>Grátis e aberto</h3><p>Código aberto no GitHub. O .exe é gerado automaticamente a partir dele, sem nada escondido.</p></div>
       <div class="card"><div class="ic">🪟</div><h3>Feito para jogar junto</h3><p>Barra fininha, transparente quando você não usa, não rouba o foco e fecha junto com o jogo.</p></div>
     </div>
   </div>
@@ -200,7 +200,7 @@
     <details><summary>Isso é permitido pela GGG?</summary><p>O programa só lê o log do jogo e o texto do item que você copia. Cada tecla gera uma única cópia do item, como no Awakened PoE Trade, e nenhuma ação no servidor. Não mexe na memória do jogo e não automatiza jogabilidade. Mesmo assim, use por sua conta.</p></details>
     <details><summary>A IA é paga?</summary><p>Sem configurar nada, o botão IA abre o Claude no navegador com a pergunta e os dados da build prontos, usando a sua conta normal. Para receber a resposta dentro do programa, dá para colocar a sua própria chave da API da Anthropic (cobrada à parte). A chave fica só no seu PC.</p></details>
     <details><summary>Serve para outras builds?</summary><p>Sim. Na tela inicial, cole o link do seu guia (Path of Building, pobb.in, pastebin ou Mobalytics) ou use sem guia, só com as dicas de cada ato.</p></details>
-    <details><summary>Onde ficam as minhas configurações?</summary><p>Em %APPDATA%\PConc Helper. Tem um botão "Pasta de dados" nas Configurações.</p></details>
+    <details><summary>Onde ficam as minhas configurações?</summary><p>Em %APPDATA%\FL PoE Helper. Tem um botão "Pasta de dados" nas Configurações.</p></details>
     <details><summary>O antivírus reclamou. É vírus?</summary><p>Não. O .exe é gerado com PyInstaller e não tem assinatura de empresa, o que às vezes gera um alarme falso. O código está todo aberto no GitHub e você pode rodar direto pelo Python, se preferir.</p></details>
   </div>
 </section>
@@ -209,7 +209,7 @@
   <div class="wrap">
     <h2 class="serif">Bora upar?</h2>
     <p class="sub" style="margin:0 auto 26px">Grátis e de código aberto.</p>
-    <a class="btn main dl-link" href="#">⬇ Baixar o PConc Helper</a>
+    <a class="btn main dl-link" href="#">⬇ Baixar o FL PoE Helper</a>
   </div>
 </section>
 
@@ -229,7 +229,7 @@
     if (/\.github\.io$/.test(host)) {
       repo += host.split('.')[0] + '/' + (parts[0] || '');
     } else {
-      repo += 'BonrArd/pconc-helper';
+      repo += 'BonrArd/FL-PoE-Helper';
     }
     document.querySelectorAll('.repo-link').forEach(function (a) { a.href = repo; });
     document.querySelectorAll('.dl-link').forEach(function (a) { a.href = repo + '/releases/latest'; });
