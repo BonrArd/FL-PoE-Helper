@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PConc Helper — overlay em português para Path of Exile</title>
+<meta name="description" content="Guia ato a ato, árvore de passivos, checagem de chefes, price check, comparador de itens e IA para a sua build. Grátis, em português.">
+<link rel="icon" href="icone.png">
+<meta property="og:title" content="PConc Helper — overlay em português para Path of Exile">
+<meta property="og:description" content="Guia ato a ato, árvore, chefes, price check, comparador e IA. Grátis.">
+<meta property="og:image" content="icone.png">
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#12141a; --panel2:#181b23; --line:#2a2516;
+    --gold:#d8b45a; --gold2:#f3dc95; --goldd:#7a5a1c;
+    --poison:#6fe36a; --poisond:#1f7a34; --text:#e7e2d4; --muted:#9a937f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+  a{color:var(--gold2)}
+  .serif{font-family:"Cinzel","Trajan Pro","Palatino Linotype",Georgia,serif;letter-spacing:.04em}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* topo */
+  header{position:relative;overflow:hidden;border-bottom:1px solid var(--line);
+         background:radial-gradient(1200px 500px at 50% 110%,rgba(111,227,106,.16),transparent 60%),
+                    radial-gradient(900px 400px at 50% -20%,rgba(216,180,90,.10),transparent 70%),var(--bg)}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+  nav .brand{display:flex;align-items:center;gap:10px;color:var(--gold2);text-decoration:none;font-weight:700}
+  nav .brand img{width:34px;height:34px}
+  nav .links a{color:var(--muted);text-decoration:none;margin-left:22px;font-size:15px}
+  nav .links a:hover{color:var(--gold2)}
+  .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center;padding:56px 0 80px}
+  .tag{display:inline-block;border:1px solid var(--goldd);color:var(--gold);border-radius:999px;
+       padding:4px 12px;font-size:13px;margin-bottom:18px;background:rgba(216,180,90,.06)}
+  h1{font-size:clamp(38px,6vw,64px);line-height:1.05;margin:0 0 16px;color:var(--gold2)}
+  h1 span{color:var(--poison);text-shadow:0 0 28px rgba(111,227,106,.35)}
+  .lead{font-size:19px;color:#cfc8b6;max-width:560px;margin:0 0 28px}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:10px;font-weight:700;
+       text-decoration:none;transition:transform .15s,box-shadow .15s}
+  .btn.main{background:linear-gradient(180deg,var(--gold2),var(--gold) 50%,#a27a2c);color:#1a1307;
+            box-shadow:0 6px 24px rgba(216,180,90,.25),inset 0 1px 0 rgba(255,255,255,.4)}
+  .btn.main:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(216,180,90,.35)}
+  .btn.ghost{border:1px solid #3a3424;color:var(--text)}
+  .btn.ghost:hover{border-color:var(--gold)}
+  .small{font-size:13px;color:var(--muted)}
+  .flask{justify-self:center;position:relative}
+  .flask img{width:min(320px,70vw);filter:drop-shadow(0 20px 60px rgba(111,227,106,.25));
+             animation:float 6s ease-in-out infinite}
+  @keyframes float{50%{transform:translateY(-10px)}}
+
+  /* barra de exemplo */
+  .barmock{margin:-40px auto 0;max-width:900px;position:relative;z-index:2;background:rgba(14,15,19,.92);
+           border:1px solid #2c2f38;border-radius:10px;padding:10px 14px;display:flex;gap:14px;align-items:center;
+           box-shadow:0 20px 50px rgba(0,0,0,.6);font-size:14px}
+  .barmock .grip{color:#555;letter-spacing:-2px}
+  .barmock .info{flex:1;min-width:0}
+  .barmock .l1{color:var(--poison);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barmock .l2{color:var(--gold2);font-weight:600}
+  .barmock .l3{color:#e9c46a;background:#3a2f12;border-radius:4px;padding:1px 6px;display:inline-block;font-size:13px}
+  .barmock .bb{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .barmock .bb span{background:#1d2028;border:1px solid #2c2f38;border-radius:5px;padding:3px 8px;color:#cfd3dc;font-size:12px}
+  .barmock .bb span.ia{border-color:var(--poisond);color:var(--poison)}
+
+  section{padding:84px 0;border-bottom:1px solid #16181e}
+  h2{font-size:34px;margin:0 0 10px;color:var(--gold2)}
+  .sub{color:var(--muted);margin:0 0 36px;max-width:640px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid #23262f;border-radius:14px;
+        padding:22px;position:relative}
+  .card:before{content:"";position:absolute;inset:0;border-radius:14px;padding:1px;pointer-events:none;
+        background:linear-gradient(180deg,rgba(216,180,90,.35),transparent 40%);
+        -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  .card .ic{font-size:26px;margin-bottom:8px}
+  .card h3{margin:0 0 6px;font-size:18px;color:var(--text)}
+  .card p{margin:0;color:#b9b29f;font-size:15px}
+
+  .steps{counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .step{background:var(--panel);border:1px solid #23262f;border-radius:14px;padding:22px 20px}
+  .step:before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+        background:radial-gradient(circle at 35% 30%,var(--poison),var(--poisond));color:#06200b;font-weight:800;margin-bottom:12px}
+  .step b{display:block;margin-bottom:4px}
+  .step span{color:#b9b29f;font-size:15px}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid #23262f;border-radius:12px;overflow:hidden}
+  td{padding:12px 16px;border-top:1px solid #1e2129}
+  tr:first-child td{border-top:0}
+  kbd{background:#1d2028;border:1px solid #3a3f4b;border-bottom-width:3px;border-radius:6px;padding:2px 8px;
+      font-family:Consolas,monospace;font-size:14px;color:var(--gold2)}
+
+  details{background:var(--panel);border:1px solid #23262f;border-radius:12px;padding:16px 20px;margin-bottom:10px}
+  summary{cursor:pointer;font-weight:600;color:var(--text)}
+  details p{color:#b9b29f;margin:10px 0 0}
+
+  .final{text-align:center}
+  footer{padding:36px 0;color:var(--muted);font-size:14px;text-align:center}
+  footer a{color:var(--muted)}
+
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr;text-align:center;padding-top:30px}
+    .lead{margin-left:auto;margin-right:auto}.cta{justify-content:center}
+    .flask{order:-1}.flask img{width:200px}
+    .grid,.steps{grid-template-columns:1fr 1fr}
+    .barmock{flex-direction:column;align-items:flex-start;margin:0 18px}
+    nav .links{display:none}
+  }
+  @media (max-width:540px){.grid,.steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand serif" href="#"><img src="icone.png" alt="">PConc Helper</a>
+      <div class="links">
+        <a href="#recursos">Recursos</a><a href="#como">Como usar</a><a href="#teclas">Teclas</a><a href="#faq">Dúvidas</a>
+        <a class="repo-link" href="#">GitHub</a>
+      </div>
+    </nav>
+    <div class="hero">
+      <div>
+        <span class="tag">Path of Exile 1 · grátis · em português</span>
+        <h1 class="serif">Seu professor de PoE <span>em cima da barra de XP</span></h1>
+        <p class="lead">Guia ato a ato, árvore de passivos no seu nível, alerta antes dos chefes, price check,
+          comparador de itens e uma IA que conhece a sua build. Sem sair do jogo.</p>
+        <div class="cta">
+          <a class="btn main dl-link" href="#">⬇ Baixar para Windows</a>
+          <a class="btn ghost repo-link" href="#">Ver no GitHub</a>
+        </div>
+        <p class="small" style="margin-top:12px">Um arquivo .exe só, sem instalar. Windows 10/11.</p>
+      </div>
+      <div class="flask"><img src="icone.png" alt="Ícone do PConc Helper: frasco de veneno verde com as letras FL"></div>
+    </div>
+  </div>
+</header>
+
+<div class="barmock" aria-label="Exemplo da barra do programa">
+  <div class="grip">⋮⋮</div>
+  <div class="info">
+    <div class="l1">A5 • The Control Blocks • Você nv 44 • Área nv 41 (XP cheio) • Tempo 3h12</div>
+    <div class="l2">▶ Templar Courts → Innocence</div>
+    <div class="l3">📍 Siga a parede da esquerda; a saída fica ao norte</div>
+  </div>
+  <div class="bb"><span>Início</span><span>✓</span><span>Árvore</span><span>Gemas</span><span>Boss?</span><span>Regex</span><span class="ia">IA</span><span>Atalhos</span></div>
+</div>
+
+<section id="recursos">
+  <div class="wrap">
+    <h2 class="serif">Tudo o que você abriria em 6 abas</h2>
+    <p class="sub">Ele lê o log do jogo para saber onde você está e o que vem a seguir. Funciona com o guia da PConc, com o seu próprio guia ou sem guia nenhum.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">🧭</div><h3>Guia ato a ato</h3><p>Próximo passo e dica de navegação de cada mapa. Os passos se marcam sozinhos conforme você avança.</p></div>
+      <div class="card"><div class="ic">🌳</div><h3>Árvore no seu nível</h3><p>A árvore do guia com as imagens oficiais e o que pegar agora, em ordem de importância.</p></div>
+      <div class="card"><div class="ic">⚔</div><h3>Pronto para o chefe?</h3><p>Confere resistências, links, vida e frascos antes da luta e diz exatamente o que falta.</p></div>
+      <div class="card"><div class="ic">💰</div><h3>Price check</h3><p>Preço do poe.ninja ou busca no trade com os mods que importam, numa tecla.</p></div>
+      <div class="card"><div class="ic">⚖</div><h3>Melhor ou pior?</h3><p>Compara o item do chão com o que você está usando: vida, resistências, defesas, dano e frascos.</p></div>
+      <div class="card"><div class="ic">🤖</div><h3>Pergunte à IA</h3><p>Manda sua dúvida junto com seus itens, gemas e ato para o Claude responder pensando na sua build.</p></div>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="card"><div class="ic">⏱</div><h3>Tempo e mortes</h3><p>Tempo por ato que pausa quando você para, contador de mortes e penalidade de XP da área.</p></div>
+      <div class="card"><div class="ic">🧪</div><h3>Filtro de loot</h3><p>Filtro no estilo NeverSink com as cores de sempre, ajustado para a build.</p></div>
+      <div class="card"><div class="ic">🪟</div><h3>Feito para jogar junto</h3><p>Barra fininha, transparente quando você não usa, não rouba o foco e fecha junto com o jogo.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="como">
+  <div class="wrap">
+    <h2 class="serif">Começar leva um minuto</h2>
+    <p class="sub">Sem instalação e sem login.</p>
+    <div class="steps">
+      <div class="step"><b>Baixe e abra</b><span>Se aparecer "O Windows protegeu o computador", clique em Mais informações → Executar assim mesmo.</span></div>
+      <div class="step"><b>Escolha o guia</b><span>Guia da PConc, o link do seu guia (PoB, pobb.in, Mobalytics) ou "não tenho guia".</span></div>
+      <div class="step"><b>Tela cheia em janela</b><span>Jogue em Windowed Fullscreen para a barra ficar por cima do jogo.</span></div>
+      <div class="step"><b>Conta pública (opcional)</b><span>Coloque sua conta <code>Nome#1234</code> e deixe os personagens públicos para liberar chefes, comparador e IA.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="teclas">
+  <div class="wrap">
+    <h2 class="serif">Teclas</h2>
+    <p class="sub">Com o mouse em cima do item, no inventário ou no chão. Dá para trocar no botão Atalhos.</p>
+    <table>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td><td>Preço / comprar no trade</td></tr>
+      <tr><td><kbd>Alt</kbd> + <kbd>D</kbd></td><td>Comparar com o seu item equipado</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> &nbsp;/&nbsp; <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>C</kbd></td><td>Também funcionam (cópia normal / avançada do jogo)</td></tr>
+      <tr><td><kbd>F9</kbd></td><td>Mostrar / esconder o programa</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2 class="serif">Dúvidas</h2>
+    <details><summary>Isso é permitido pela GGG?</summary><p>O programa só lê o log do jogo e o texto do item que você copia. Cada tecla gera uma única cópia do item, como no Awakened PoE Trade, e nenhuma ação no servidor. Não mexe na memória do jogo e não automatiza jogabilidade. Mesmo assim, use por sua conta.</p></details>
+    <details><summary>A IA é paga?</summary><p>Sem configurar nada, o botão IA abre o Claude no navegador com a pergunta e os dados da build prontos, usando a sua conta normal. Para receber a resposta dentro do programa, dá para colocar a sua própria chave da API da Anthropic (cobrada à parte). A chave fica só no seu PC.</p></details>
+    <details><summary>Serve para outras builds?</summary><p>Sim. Na tela inicial, cole o link do seu guia (Path of Building, pobb.in, pastebin ou Mobalytics) ou use sem guia, só com as dicas de cada ato.</p></details>
+    <details><summary>Onde ficam as minhas configurações?</summary><p>Em %APPDATA%\PConc Helper. Tem um botão "Pasta de dados" nas Configurações.</p></details>
+    <details><summary>O antivírus reclamou. É vírus?</summary><p>Não. O .exe é gerado com PyInstaller e não tem assinatura de empresa, o que às vezes gera um alarme falso. O código está todo aberto no GitHub e você pode rodar direto pelo Python, se preferir.</p></details>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 class="serif">Bora upar?</h2>
+    <p class="sub" style="margin:0 auto 26px">Grátis e de código aberto.</p>
+    <a class="btn main dl-link" href="#">⬇ Baixar o PConc Helper</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Feito por <b>Gabriel Correa (FL)</b> com a ajuda do Claude · Build e guia: <a href="https://mobalytics.gg/poe/builds/poisonous-concoction-of-bouncing-pathfinder-animeprincess">animeprincess</a> ·
+    Preços: <a href="https://poe.ninja">poe.ninja</a><br>
+    Projeto de fã, sem ligação com a Grinding Gear Games. Path of Exile é marca da Grinding Gear Games.
+  </div>
+</footer>
+
+<script>
+  // descobre o repositório pelo endereço do GitHub Pages (usuario.github.io/repositorio)
+  (function () {
+    var host = location.hostname, parts = location.pathname.split('/').filter(Boolean);
+    var repo = 'https://github.com/';
+    if (/\.github\.io$/.test(host)) {
+      repo += host.split('.')[0] + '/' + (parts[0] || '');
+    } else {
+      repo += 'BonrArd/pconc-helper';
+    }
+    document.querySelectorAll('.repo-link').forEach(function (a) { a.href = repo; });
+    document.querySelectorAll('.dl-link').forEach(function (a) { a.href = repo + '/releases/latest'; });
+  })();
+</script>
+</body>
+</html>
