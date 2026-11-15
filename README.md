@@ -45,6 +45,17 @@ Já vem com um guia de exemplo pronto para testar.
 4. (Opcional) Em **Configurações → Conta PoE**, coloque sua conta com o número (ex.: `Nome#1234`) e deixe a aba de
    personagens **pública** no site do PoE. Isso libera a checagem de chefes, o comparador e a IA com seus itens.
 
+### No Linux
+
+Funciona com o PoE rodando pela **Steam (Proton)** ou pelo **Lutris**.
+
+1. Baixe o **FL-PoE-Helper-Linux** em [Releases](../../releases/latest) e dê permissão de execução:
+   `chmod +x FL-PoE-Helper-Linux`, depois abra com dois cliques ou `./FL-PoE-Helper-Linux`.
+2. O programa procura o `Client.txt` sozinho (Steam nativa, Flatpak e Lutris). Se não achar, use **Configurar → Escolher Client.txt**.
+3. As teclas próprias (`Ctrl+D` / `Alt+D`) funcionam em **X11**. No **Wayland**, use as cópias do jogo:
+   `Ctrl+C` (preço) e `Ctrl+Alt+C` (comparar).
+4. Opcional: instale `xdotool` (detecta a janela do jogo) e `xprintidle` (pausa o tempo quando você para).
+
 ### Teclas (mouse em cima do item)
 
 | Tecla | O que faz |
@@ -76,7 +87,7 @@ Use o botão **Client.txt** e escolha o arquivo em `...\Path of Exile\logs\Clien
 
 ## Rodar pelo código
 
-Precisa de Python 3.9+ para Windows. Opcional: `pip install pillow` (imagens da árvore).
+Precisa de Python 3.9+ com tkinter (Windows ou Linux). Opcional: `pip install pillow` (imagens da árvore) e, no Linux, `pip install pynput` (teclas próprias).
 
 ```bash
 python src/fl_poe_helper.pyw
