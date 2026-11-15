@@ -1443,7 +1443,7 @@ def guide_bandit():
 
 def guide_name():
     if GUIDE["mode"] == "pconc":
-        return "PConc of Bouncing Pathfinder (animeprincess)"
+        return "Guia de exemplo: PConc of Bouncing Pathfinder"
     if GUIDE["mode"] == "pob":
         return GUIDE.get("name", "Guia importado")
     return "Sem guia (só dicas dos atos)"
@@ -3303,6 +3303,26 @@ def ensure_desktop_shortcut(cfg, force=False):
     return False
 
 
+def dark_titlebar(win, color="#0f1115"):
+    """Barra de título escura (Windows 10/11), da mesma cor do programa, no lugar da barra branca."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        win.update_idletasks()
+        hwnd = ctypes.windll.user32.GetParent(win.winfo_id()) or win.winfo_id()
+        on = ctypes.c_int(1)
+        for attr in (20, 19):                      # DWMWA_USE_IMMERSIVE_DARK_MODE (novo / antigo)
+            if ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(on), 4) == 0:
+                break
+        c = color.lstrip("#")
+        bgr = ctypes.c_int(int(c[4:6] + c[2:4] + c[0:2], 16))    # COLORREF = 0x00BBGGRR
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(bgr), 4)   # cor da barra (Win11)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 34, ctypes.byref(bgr), 4)   # cor da borda (Win11)
+    except Exception:
+        pass
+
+
 def set_app_icon(root):
     """Ícone do app (frasco FL) na janela, nas janelas filhas e na barra de tarefas."""
     import tkinter as tk
@@ -3496,6 +3516,15 @@ def run_app():
             pass
     root = tk.Tk()
     set_app_icon(root)
+    _darked = set()
+
+    def _on_map(e):
+        w_ = e.widget
+        if isinstance(w_, (tk.Tk, tk.Toplevel)) and str(w_) not in _darked:
+            _darked.add(str(w_))
+            w_.after(10, lambda: dark_titlebar(w_, BG))
+    root.bind_class("Toplevel", "<Map>", _on_map, add="+")
+    root.bind("<Map>", _on_map, add="+")
     root.title(APP_NAME)
 
     def report_error(exc, val, tb):
@@ -4467,48 +4496,65 @@ def run_app():
         w.configure(bg=BG)
         w.attributes("-topmost", True)
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-        w.geometry(f"560x660+{(sw - 560) // 2}+{max(20, (sh - 660) // 2)}")
-        tk.Label(w, text="🏠 Início", bg=BG, fg=ACCENT, font=("Segoe UI", 16, "bold")).pack(pady=(14, 0))
+        hh = min(800, sh - 60)
+        w.geometry(f"580x{hh}+{(sw - 580) // 2}+{max(10, (sh - hh) // 2)}")
+        tk.Label(w, text="🏠 Início", bg=BG, fg=ACCENT, font=("Segoe UI", 16, "bold")).pack(pady=(12, 0))
         lbl_cur = tk.Label(w, text="", bg=BG, fg=MUTED, font=font_s)
-        lbl_cur.pack(pady=(0, 8))
+        lbl_cur.pack(pady=(0, 6))
+
+        # aviso de "deu tudo certo" (aparece embaixo por alguns segundos)
+        ok_bar = tk.Label(w, text="", bg="#1f6b34", fg="#eaffea", font=font_b, padx=10, pady=8,
+                          wraplength=520, justify="center")
+        ok_job = {"id": None}
+
+        def show_ok(msg, good=True):
+            ok_bar.config(text=msg, bg="#1f6b34" if good else "#7a2424",
+                          fg="#eaffea" if good else "#ffecec")
+            ok_bar.pack(side="bottom", fill="x", padx=16, pady=(0, 12))
+            if ok_job["id"]:
+                w.after_cancel(ok_job["id"])
+            ok_job["id"] = w.after(6000, ok_bar.pack_forget)
 
         def refresh_cur():
             lbl_cur.config(text=f"Guia atual: {guide_name()}")
 
         refresh_cur()
 
-        def card(title, desc, btn_text, cmd):
+        def card(title, desc, btn_text=None, cmd=None):
             f = tk.Frame(w, bg=BG2, padx=12, pady=10)
-            f.pack(fill="x", padx=16, pady=6)
+            f.pack(fill="x", padx=16, pady=5)
             tk.Label(f, text=title, bg=BG2, fg=FG, font=font_b, anchor="w").pack(fill="x")
-            tk.Label(f, text=desc, bg=BG2, fg=MUTED, font=font_s, anchor="w", justify="left",
-                     wraplength=500).pack(fill="x", pady=(2, 6))
+            d = tk.Label(f, text=desc, bg=BG2, fg=MUTED, font=font_s, anchor="w", justify="left",
+                         wraplength=520)
+            d.pack(fill="x", pady=(2, 6))
             row_ = tk.Frame(f, bg=BG2)
             row_.pack(fill="x")
-            b = tk.Button(row_, text=btn_text, command=cmd, bg=ACCENT, fg="#0b0c0f", relief="flat",
-                          activebackground="#a8f0a8", font=font_b, padx=10)
-            b.pack(side="left")
-            return f, row_
+            if btn_text:
+                tk.Button(row_, text=btn_text, command=cmd, bg=ACCENT, fg="#0b0c0f", relief="flat",
+                          activebackground="#a8f0a8", font=font_b, padx=10).pack(side="left")
+            return f, row_, d
 
         def use_pconc():
             cfg["guide_mode"] = "pconc"
             on_mode_changed()
             refresh_cur()
+            show_ok("✅ Tudo certo! Guia de exemplo ativado. Pode fechar esta janela e jogar.")
 
         def use_none():
             cfg["guide_mode"] = "none"
             on_mode_changed()
             refresh_cur()
+            show_ok("✅ Tudo certo! Modo sem guia ativado: você recebe as dicas de cada ato.")
 
-        card("1) Guia incluso: PConc of Bouncing Pathfinder",
-             "O guia do animeprincess (Mobalytics, 3.30) já configurado: passo a passo, gemas por fase, "
-             "7 árvores, regex e upgrades.", "Usar este guia", use_pconc)
+        card("1) Guia de exemplo (vem junto)",
+             "Um guia pronto para testar o programa: PConc of Bouncing Pathfinder (build de animeprincess, 3.30), "
+             "com passo a passo, gemas por fase, 7 árvores, regex e upgrades.", "Usar o guia de exemplo", use_pconc)
 
-        f2, r2 = card("2) Importar o MEU guia",
-                      "Copie o LINK do guia (Mobalytics, pobb.in ou pastebin) ou o CÓDIGO do Path of Building "
-                      "(botão 'Copy Code' do guia) e clique abaixo. O programa pega as árvores, as gemas de "
-                      "cada fase, o bandido e as notas do guia.", "Colar e importar", lambda: do_import())
-        status = tk.Label(f2, text="", bg=BG2, fg=FG, font=font_s, anchor="w", justify="left", wraplength=500)
+        f2, r2, _d2 = card("2) Importar o MEU guia",
+                           "Copie o LINK do guia (Mobalytics, pobb.in ou pastebin) ou o CÓDIGO do Path of Building "
+                           "(botão 'Copy Code' do guia) e clique abaixo. O programa pega as árvores, as gemas de "
+                           "cada fase, o bandido e as notas do guia.", "Colar e importar", lambda: do_import())
+        status = tk.Label(f2, text="", bg=BG2, fg=FG, font=font_s, anchor="w", justify="left", wraplength=520)
         status.pack(fill="x", pady=(6, 0))
         tk.Button(r2, text="Digitar link...", command=lambda: do_import(ask=True), bg=BG, fg=FG,
                   relief="flat", font=font_s, padx=8).pack(side="left", padx=6)
@@ -4530,6 +4576,7 @@ def run_app():
             if not text:
                 status.config(text="A área de transferência está vazia. Copie o link ou o código primeiro.",
                               fg="#ff7b7b")
+                show_ok("❌ Nada para importar: copie o link ou o código do guia primeiro.", good=False)
                 return
             status.config(text="Importando...", fg=FG)
             res = {}
@@ -4548,12 +4595,14 @@ def run_app():
                     cfg["guide_mode"] = "pob"
                     on_mode_changed(f"Guia importado: {d['name']}")
                     refresh_cur()
-                    status.config(text=f"✅ Importado: {d['name']} • {len(d['trees'])} árvores • "
+                    status.config(text=f"Importado: {d['name']} • {len(d['trees'])} árvores • "
                                        f"{len(d['skillsets'])} setups de gemas • bandido: {d['bandit']}",
                                   fg=ACCENT)
+                    show_ok(f"✅ Tudo certo! Guia \"{d['name']}\" importado e ativado.")
                 elif "e" in res:
-                    status.config(text=f"❌ Não consegui importar ({res['e']}). Se for um link, tente copiar o "
+                    status.config(text=f"Não consegui importar ({res['e']}). Se for um link, tente copiar o "
                                        "código do Path of Building no próprio guia ('Copy Code').", fg="#ff7b7b")
+                    show_ok("❌ Não deu para importar esse guia. Veja a mensagem no quadro 2.", good=False)
                 else:
                     w.after(300, wait)
             w.after(300, wait)
@@ -4562,6 +4611,61 @@ def run_app():
              "Só as dicas da campanha: rota de cada área, chefes, trials, bandidos (matar os 3), "
              "aviso de XP, tempos e checagem de resistências antes dos chefes.", "Usar sem guia", use_none)
 
+        # 4) Configurar: conta do PoE (login) e Client.txt
+        f4, r4, d4 = card("⚙ Configurar", "")
+
+        def cfg_status():
+            acc = cfg.get("account") or ""
+            logp = cfg.get("log_path") or ""
+            ok_log = bool(logp) and os.path.isfile(logp)
+            d4.config(text=("Conta do PoE: " + (f"✅ {acc}" if acc else "⚠ não configurada (opcional: libera checagem "
+                                                                      "de chefes, comparador e IA com seus itens)")
+                            + "\nClient.txt do jogo: " + ("✅ encontrado" if ok_log else "⚠ não encontrado")))
+        cfg_status()
+        tk.Label(r4, text="Conta (ex.: Nome#1234):", bg=BG2, fg=FG, font=font_s).pack(side="left")
+        acc_e = tk.Entry(r4, width=22, bg=BG, fg=FG, insertbackground=FG, relief="flat", font=font_s)
+        acc_e.insert(0, cfg.get("account", ""))
+        acc_e.pack(side="left", padx=6, ipady=3)
+
+        def save_acc():
+            acc = acc_e.get().strip()
+            if not acc:
+                show_ok("❌ Digite o nome da conta, como aparece no site (ex.: Nome#1234).", good=False)
+                return
+            if "#" not in acc:
+                show_ok("⚠ Faltou o #número no fim (ex.: Nome#1234). Veja no canto do site do PoE.", good=False)
+                return
+            cfg["account"] = acc
+            save_config(cfg)
+            cfg_status()
+            show_ok(f"✅ Tudo certo! Conta {acc} salva. Deixe os personagens públicos no site do PoE.")
+
+        tk.Button(r4, text="Salvar conta", command=save_acc, bg=ACCENT, fg="#0b0c0f", relief="flat",
+                  activebackground="#a8f0a8", font=font_b, padx=10).pack(side="left")
+        acc_e.bind("<Return>", lambda e: save_acc())
+        r4b = tk.Frame(f4, bg=BG2)
+        r4b.pack(fill="x", pady=(6, 0))
+
+        def pick_log():
+            p_ = filedialog.askopenfilename(
+                parent=w, title="Selecione o Client.txt (pasta 'logs' do Path of Exile)",
+                filetypes=[("Client.txt", "Client.txt"), ("Texto", "*.txt"), ("Todos", "*.*")])
+            if p_:
+                cfg["log_path"] = p_
+                save_config(cfg)
+                start_log()
+                cfg_status()
+                show_ok("✅ Tudo certo! Client.txt configurado: o programa já está lendo o jogo.")
+
+        tk.Button(r4b, text="Escolher Client.txt", command=pick_log, bg=BG, fg=FG, relief="flat",
+                  font=font_s, padx=8).pack(side="left")
+        tk.Button(r4b, text="Abrir privacidade no site do PoE",
+                  command=lambda: webbrowser.open(
+                      "https://www.pathofexile.com/account/view-profile/"
+                      + (cfg.get("account") or "").replace("#", "-") + "/privacy"
+                      if cfg.get("account") else "https://www.pathofexile.com/my-account"),
+                  bg=BG, fg=FG, relief="flat", font=font_s, padx=8).pack(side="left", padx=6)
+
         show_start = tk.BooleanVar(value=cfg.get("home_on_start", True))
 
         def on_show_start():
@@ -4569,14 +4673,12 @@ def run_app():
             save_config(cfg)
         tk.Checkbutton(w, text="Mostrar esta tela sempre que abrir o programa", variable=show_start,
                        command=on_show_start, bg=BG, fg=MUTED, selectcolor=BG2, activebackground=BG,
-                       activeforeground=FG, font=font_s).pack(pady=(6, 0))
+                       activeforeground=FG, font=font_s).pack(pady=(6, 4))
         try:
             w.lift()
             w.focus_force()
         except Exception:
             pass
-        tk.Button(w, text="Começar ▶", command=w.destroy, bg=BG2, fg=FG, relief="flat", font=font_b,
-                  padx=14, pady=4).pack(pady=12)
 
     mk_btn(row_guide, "🏠 Início", open_home)
     hb = bar_btn("🏠 Início", open_home)
