@@ -17,9 +17,9 @@
 
 ---
 
-Feito para a build **Poisonous Concoction of Bouncing Pathfinder** (guia do animeprincess no Mobalytics), mas funciona
-com **qualquer build**: você pode colar o link do seu próprio guia (Path of Building / pobb.in / pastebin / Mobalytics)
-ou usar sem guia, só com as dicas de cada ato.
+Criado para **facilitar a vida de quem joga a campanha do PoE 1**, com **qualquer build**: cole o link do seu guia
+(Path of Building / pobb.in / pastebin / Mobalytics) ou use sem guia, só com as dicas de cada ato.
+Já vem com um guia de exemplo pronto para testar.
 
 ## O que ele faz
 
@@ -40,7 +40,7 @@ ou usar sem guia, só com as dicas de cada ato.
 1. Baixe o **[FL-PoE-Helper.exe](../../releases/latest)** (em "Assets") e abra. Não precisa instalar nada.
    > O Windows pode mostrar "O Windows protegeu o computador" porque o programa não tem assinatura de empresa.
    > Clique em **Mais informações → Executar assim mesmo**.
-2. Na tela inicial, escolha: usar o guia da PConc, colar o link do **seu** guia, ou **não tenho guia**.
+2. Na tela inicial, escolha: colar o link do **seu** guia, usar o **guia de exemplo** que já vem junto, ou **não tenho guia**.
 3. Jogue em **Tela cheia em janela** (Windowed Fullscreen) para o overlay ficar por cima do jogo.
 4. (Opcional) Em **Configurações → Conta PoE**, coloque sua conta com o número (ex.: `Nome#1234`) e deixe a aba de
    personagens **pública** no site do PoE. Isso libera a checagem de chefes, o comparador e a IA com seus itens.
@@ -94,9 +94,9 @@ O `.exe` das versões é gerado automaticamente pelo GitHub Actions a partir des
 
 ## Créditos
 
-- Build e guia: **animeprincess** — [Poisonous Concoction of Bouncing Pathfinder (Mobalytics)](https://mobalytics.gg/poe/builds/poisonous-concoction-of-bouncing-pathfinder-animeprincess)
+- Ideia e criação: **Gabriel Correa (FL)**, com a ajuda do Claude.
+- O guia de exemplo incluído usa os passos e as árvores da build [Poisonous Concoction of Bouncing Pathfinder](https://mobalytics.gg/poe/builds/poisonous-concoction-of-bouncing-pathfinder-animeprincess), de animeprincess.
 - Preços: [poe.ninja](https://poe.ninja) · Trade e dados da árvore: [pathofexile.com](https://www.pathofexile.com)
-- Criado por **Gabriel Correa (FL)**, com a ajuda do Claude.
 
 Projeto de fã, sem ligação com a Grinding Gear Games. Path of Exile é marca da Grinding Gear Games.
 
