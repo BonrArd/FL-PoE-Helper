@@ -12,14 +12,22 @@ O que faz:
 O que NÃO faz:
   - Não aperta teclas, não clica, não lê memória do jogo, não altera arquivos do jogo.
 
-Requisitos: Python 3.9+ para Windows (python.org, com a opção "tcl/tk" marcada - vem por padrão).
+Funciona no Windows e no Linux (Steam/Proton ou Lutris). No Linux, as teclas próprias (Ctrl+D/Alt+D)
+precisam de X11 e do pacote pynput (já vem dentro do executável); no Wayland use Ctrl+C / Ctrl+Alt+C.
+Requisitos para rodar pelo código: Python 3.9+ com tkinter.
 Como rodar: dê dois cliques no arquivo, ou no terminal:  python fl_poe_helper.pyw
 """
 
 import json
 import os
 import re
+import shutil
+import subprocess
+import sys
 import webbrowser
+
+IS_WIN = os.name == "nt"
+IS_LINUX = sys.platform.startswith("linux")
 
 APP_NAME = "FL PoE Helper"
 APP_VERSION = "1.0.0"
@@ -27,7 +35,7 @@ REPO_URL = "https://github.com/BonrArd/FL-PoE-Helper"
 # Tudo que o programa salva fica numa pasta só: %APPDATA%\FL PoE Helper (config, caches, imagens, registros)
 _HOME = os.path.expanduser("~")
 DATA_DIR = os.path.join(os.environ.get("APPDATA") or _HOME, APP_NAME) if os.name == "nt" \
-    else os.path.join(_HOME, ".pconc_helper_data")
+    else os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(_HOME, ".local", "share"), APP_NAME)
 CACHE_DIR = os.path.join(DATA_DIR, "cache")
 LOG_DIR = os.path.join(DATA_DIR, "registros")
 for _d in (DATA_DIR, CACHE_DIR, LOG_DIR):
@@ -1969,8 +1977,39 @@ DEFAULT_LOG_PATHS = [
 ]
 
 
+def linux_log_candidates():
+    """Linux: Steam nativa, Steam Flatpak, bibliotecas extras da Steam e Lutris/Wine."""
+    h = os.path.expanduser("~")
+    rel = os.path.join("steamapps", "common", "Path of Exile", "logs", "Client.txt")
+    steam_roots = [os.path.join(h, ".steam", "steam"), os.path.join(h, ".steam", "root"),
+                   os.path.join(h, ".local", "share", "Steam"),
+                   os.path.join(h, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam"),
+                   os.path.join(h, ".var", "app", "com.valvesoftware.Steam", "data", "Steam")]
+    cands = []
+    for r in steam_roots:
+        cands.append(os.path.join(r, rel))
+        try:
+            with open(os.path.join(r, "steamapps", "libraryfolders.vdf"), "r", encoding="utf-8",
+                      errors="ignore") as f:
+                for lib in re.findall(r'"path"\s+"([^"]+)"', f.read()):
+                    cands.append(os.path.join(lib, rel))
+        except Exception:
+            pass
+    ggg = os.path.join("Grinding Gear Games", "Path of Exile", "logs", "Client.txt")
+    for prefix in (os.path.join(h, "Games", "path-of-exile"), os.path.join(h, "Games", "path-of-exile-1"),
+                   os.path.join(h, ".wine")):
+        for pf in ("Program Files (x86)", "Program Files"):
+            cands.append(os.path.join(prefix, "drive_c", pf, ggg))
+    return cands
+
+
 def find_default_log():
     """Procura o Client.txt nos lugares comuns (Steam e site oficial) em todos os discos."""
+    if not IS_WIN:
+        for p in linux_log_candidates():
+            if os.path.isfile(p):
+                return p
+        return ""
     cands = list(DEFAULT_LOG_PATHS)
     rel_steam = os.path.join("steamapps", "common", "Path of Exile", "logs", "Client.txt")
     steam_bases = [("Program Files (x86)", "Steam"), ("Program Files", "Steam"), ("Steam",), ("SteamLibrary",),
@@ -3149,10 +3188,60 @@ def parse_combo(combo):
     return (mods, vk) if vk else None
 
 
+def has_pynput():
+    try:
+        import pynput.keyboard  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def pynput_combo(combo):
+    """'Ctrl+D' -> '<ctrl>+d' (formato do pynput)."""
+    if not combo or combo == "Desligado":
+        return None
+    out = []
+    for part in combo.split("+"):
+        p = part.strip().lower()
+        if p in ("ctrl", "alt", "shift"):
+            out.append(f"<{p}>")
+        elif re.fullmatch(r"f([1-9]|1[0-2])", p):
+            out.append(f"<{p}>")
+        elif len(p) == 1:
+            out.append(p)
+    return "+".join(out) if out else None
+
+
+def start_linux_hotkeys(combos, q, holder, kind="act"):
+    """Linux (X11): teclas globais pelo pynput. combos {nome: 'Ctrl+D'} -> coloca (kind, nome) em q."""
+    try:
+        from pynput import keyboard
+        mapping = {}
+        for name, combo in combos.items():
+            pc = pynput_combo(combo)
+            if pc:
+                mapping[pc] = (lambda n=name: q.append((kind, n)))
+        if not mapping:
+            q.append(("ready", ""))
+            return
+        lst = keyboard.GlobalHotKeys(mapping)
+        lst.daemon = True
+        lst.start()
+        holder["listener"] = lst
+        dbg(f"teclas (Linux) registradas: {list(mapping)}")
+        q.append(("ready", ",".join(combos.values())))
+    except Exception as ex:
+        dbg(f"teclas (Linux) falharam: {ex}")
+        q.append(("fail", "?"))
+
+
 def start_action_hotkeys(combos, q, holder):
     """Windows: teclas globais de ação {nome: 'Ctrl+D'}. Ao apertar, coloca o nome em q.
     holder['tid'] guarda a thread para poder trocar as teclas sem reiniciar."""
     import threading
+    if not IS_WIN:
+        start_linux_hotkeys(combos, q, holder)
+        return
 
     def worker():
         try:
@@ -3186,6 +3275,14 @@ def start_action_hotkeys(combos, q, holder):
 
 
 def stop_action_hotkeys(holder):
+    lst = holder.pop("listener", None)
+    if lst is not None:
+        try:
+            lst.stop()
+        except Exception:
+            pass
+    if not IS_WIN:
+        return
     try:
         import ctypes
         if holder.get("tid"):
@@ -3195,8 +3292,23 @@ def stop_action_hotkeys(holder):
         pass
 
 
+def _xdotool(*args):
+    if not shutil.which("xdotool"):
+        return None
+    try:
+        r = subprocess.run(["xdotool", *args], capture_output=True, text=True, timeout=2)
+        return r.stdout.strip() if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
 def poe_is_foreground():
     """(True/False, título da janela da frente)."""
+    if not IS_WIN:
+        t = _xdotool("getactivewindow", "getwindowname")
+        if t is None:
+            return True, "(Linux: não dá para ver a janela da frente; instale o xdotool)"
+        return ("Path of Exile" in t or "PathOfExile" in t), t
     try:
         import ctypes
         from ctypes import wintypes
@@ -3214,6 +3326,21 @@ def poe_is_foreground():
 
 def poe_running():
     """True se a janela do Path of Exile existe (aberto, mesmo minimizado). None se não der para saber."""
+    if not IS_WIN:
+        try:
+            for pid in os.listdir("/proc"):
+                if not pid.isdigit():
+                    continue
+                try:
+                    with open(f"/proc/{pid}/cmdline", "rb") as f:
+                        cmd = f.read().decode("utf-8", "ignore")
+                except Exception:
+                    continue
+                if "PathOfExile" in cmd and "PathOfExile2" not in cmd:
+                    return True
+            return False
+        except Exception:
+            return None
     try:
         import ctypes
         user32 = ctypes.windll.user32
@@ -3227,8 +3354,25 @@ def poe_running():
 def send_item_copy(advanced):
     """Uma tecla = uma cópia do item (igual ao Awakened PoE Trade): envia Ctrl+C ou Ctrl+Alt+C ao jogo.
     Não faz nenhuma ação no servidor; só copia o texto do item que está sob o mouse."""
-    import ctypes
     import time
+    if not IS_WIN:
+        keys = "ctrl+alt+c" if advanced else "ctrl+c"
+        if shutil.which("xdotool"):
+            subprocess.run(["xdotool", "key", "--clearmodifiers", keys], timeout=3)
+            return
+        from pynput.keyboard import Controller, Key
+        kb = Controller()
+        mods = [Key.ctrl, Key.alt] if advanced else [Key.ctrl]
+        for m in mods:
+            kb.press(m)
+        time.sleep(0.03)
+        kb.press("c")
+        kb.release("c")
+        time.sleep(0.01)
+        for m in reversed(mods):
+            kb.release(m)
+        return
+    import ctypes
     user32 = ctypes.windll.user32
     KEYUP = 0x2
     VK_CTRL, VK_ALT, VK_C = 0x11, 0x12, 0x43
@@ -3262,13 +3406,48 @@ APP_ICON_ICO = "AAABAAcAEBAAAAAAIABeAwAAdgAAABgYAAAAACAAFQYAANQDAAAgIAAAAAAgAIUJ
 ICON_FILE = os.path.join(DATA_DIR, "icone.ico")
 
 
+def linux_shortcut(cfg, here, frozen):
+    """Linux: cria o lançador .desktop (menu de aplicativos e área de trabalho) com o ícone do frasco FL."""
+    import base64
+    try:
+        icon = os.path.join(DATA_DIR, "icone.png")
+        with open(icon, "wb") as f:
+            f.write(base64.b64decode(APP_ICON_PNG[64]))
+        exe = here if frozen else f'{sys.executable} "{here}"'
+        if frozen:
+            exe = f'"{here}"'
+        txt = ("[Desktop Entry]\nType=Application\nName=FL PoE Helper\n"
+               "Comment=Ajudante de campanha para Path of Exile 1\n"
+               f"Exec={exe}\nIcon={icon}\nTerminal=false\nCategories=Game;Utility;\n")
+        made = False
+        for d in (os.path.join(os.path.expanduser("~"), ".local", "share", "applications"),
+                  os.path.join(os.path.expanduser("~"), "Desktop"),
+                  os.path.join(os.path.expanduser("~"), "Área de Trabalho")):
+            if d.endswith("applications"):
+                os.makedirs(d, exist_ok=True)
+            if os.path.isdir(d):
+                path = os.path.join(d, "fl-poe-helper.desktop")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(txt)
+                os.chmod(path, 0o755)
+                made = True
+        if made:
+            cfg["shortcut_target"] = here
+        return made
+    except Exception as ex:
+        dbg(f"atalho Linux: {ex}")
+        return False
+
+
 def ensure_desktop_shortcut(cfg, force=False):
     """Cria (uma vez) o atalho 'FL PoE Helper' na área de trabalho, com o ícone do frasco FL."""
     import sys
     frozen = getattr(sys, "frozen", False)
     here = os.path.abspath(sys.argv[0] if sys.argv and sys.argv[0] else __file__)
-    if os.name != "nt" or (cfg.get("shortcut_target") == here and not force):
+    if cfg.get("shortcut_target") == here and not force:
         return False
+    if not IS_WIN:
+        return linux_shortcut(cfg, here, frozen)
     import base64
     import subprocess
     import sys
@@ -3516,6 +3695,9 @@ def run_app():
             pass
     root = tk.Tk()
     set_app_icon(root)
+    if os.environ.get("FLPOE_SMOKE"):
+        root.after(int(os.environ.get("FLPOE_SMOKE_MS", "6000")), lambda: (print("SMOKE_OK", flush=True),
+                                                                          root.destroy()))
     _darked = set()
 
     def _on_map(e):
@@ -3527,9 +3709,14 @@ def run_app():
     root.bind("<Map>", _on_map, add="+")
     root.title(APP_NAME)
 
+    smoke_err = []
+
     def report_error(exc, val, tb):
         import traceback
         txt = "".join(traceback.format_exception(exc, val, tb))
+        if os.environ.get("FLPOE_SMOKE"):
+            print("SMOKE_ERROR\n" + txt, file=sys.stderr, flush=True)
+            smoke_err.append(txt)
         try:
             with open(ERROR_LOG, "a", encoding="utf-8") as f:
                 f.write(txt + "\n")
@@ -3757,10 +3944,10 @@ def run_app():
 
     def open_data_dir():
         try:
-            if os.name == "nt":
+            if IS_WIN:
                 os.startfile(DATA_DIR)
             else:
-                webbrowser.open("file://" + DATA_DIR)
+                subprocess.Popen(["xdg-open", DATA_DIR])
         except Exception as ex:
             show_warning(f"Pasta de dados: {DATA_DIR} ({ex})")
     mk_btn(cfg_a, "Pasta de dados", open_data_dir)
@@ -5296,7 +5483,40 @@ def run_app():
     IDLE_LIMIT = 60
     last_fg = {"t": 0.0}
 
+    linux_input = {"t": None}
+
+    def _linux_idle_watch():
+        """Linux sem xprintidle: marca a hora do último mouse/teclado pelo pynput."""
+        try:
+            import time as _t
+            from pynput import keyboard, mouse
+            linux_input["t"] = _t.time()
+
+            def touch(*_a):
+                linux_input["t"] = _t.time()
+            for L in (keyboard.Listener(on_press=touch), mouse.Listener(on_move=touch, on_click=touch,
+                                                                         on_scroll=touch)):
+                L.daemon = True
+                L.start()
+        except Exception:
+            linux_input["t"] = None
+
+    if not IS_WIN and not shutil.which("xprintidle") and has_pynput():
+        _linux_idle_watch()
+
     def idle_seconds():
+        if not IS_WIN:
+            import time as _t
+            out = None
+            if shutil.which("xprintidle"):
+                try:
+                    out = subprocess.run(["xprintidle"], capture_output=True, text=True, timeout=2).stdout
+                    return int(out.strip()) / 1000.0
+                except Exception:
+                    pass
+            if linux_input["t"] is not None:
+                return _t.time() - linux_input["t"]
+            return 0.0
         try:
             import ctypes
 
@@ -5313,7 +5533,7 @@ def run_app():
     def tick_active():
         try:
             on = False
-            if os.name == "nt" and state.char:
+            if state.char:
                 import time as _t
                 fg, _title = poe_is_foreground()
                 if fg:
@@ -5339,7 +5559,9 @@ def run_app():
 
     def restart_action_keys():
         dbg(f"--- iniciando teclas (sistema {os.name}) preço={cfg.get('hk_price')} comparar={cfg.get('hk_compare')}")
-        if os.name != "nt":
+        if not IS_WIN and not has_pynput():
+            show_warning("Linux: as teclas próprias (Ctrl+D/Alt+D) precisam do pynput e de X11. "
+                         "Use Ctrl+C (preço) e Ctrl+Alt+C (comparar) no jogo.")
             return
         stop_action_hotkeys(act_holder)
         root.after(150, lambda: start_action_hotkeys({"price": cfg["hk_price"], "compare": cfg["hk_compare"]},
@@ -5404,8 +5626,10 @@ def run_app():
         show_warning(("Preço/comprar" if which == "hk_price" else "Comparar") + f": tecla {combo}")
 
     kvars = {"hk_price": tk.StringVar(value=cfg["hk_price"]), "hk_compare": tk.StringVar(value=cfg["hk_compare"])}
+    key_rows = []
     for which, label in (("hk_price", "💰 Tecla preço/comprar:"), ("hk_compare", "⚖ Tecla comparar:")):
         r_ = tk.Frame(sec_cfg, bg=BG)
+        key_rows.append(r_)
         r_.pack(fill="x", pady=(2, 0))
         tk.Label(r_, text=label, bg=BG, fg=MUTED, font=font_s).pack(side="left")
         om = tk.OptionMenu(r_, kvars[which], *ACTION_KEYS, command=lambda c, w_=which: set_action_key(w_, c))
@@ -5488,7 +5712,7 @@ def run_app():
 
     def watch_game():
         try:
-            run = poe_running() if os.name == "nt" else None
+            run = poe_running()
             if run:
                 game_watch["seen"], game_watch["gone"] = True, 0
             elif run is False and game_watch["seen"] and cfg.get("close_with_game", True):
@@ -5543,8 +5767,16 @@ def run_app():
         root.after(100, poll_hotkey)
 
     vk = HOTKEYS.get(cfg.get("hotkey"))
-    if vk and os.name == "nt":
+    if vk and IS_WIN:
         start_hotkey_thread(vk, hk_q)
+    elif not IS_WIN and has_pynput() and cfg.get("hotkey"):
+        class _HkQ:
+            def append(self, item):
+                if item[0] == "act":
+                    hk_q.append("toggle")
+                elif item[0] == "fail":
+                    hk_q.append("fail")
+        start_linux_hotkeys({"toggle": cfg["hotkey"]}, _HkQ(), {})
     root.after(100, poll_hotkey)
 
     # --- ordem final dos botões (do mais usado para o menos usado) ---
@@ -5740,13 +5972,56 @@ def run_app():
                 b.pack_forget()
                 b.pack(**pk)
 
-    arrange(BTN, ["Modo barra (perto da XP)", "Checar chefe", "Regex", "Perguntar à IA"], side="left", padx=(0, 4), pady=2)
+    # ===== ORDEM DOS MENUS =====
+    # Regra: do que se usa a cada minuto jogando -> o que se usa uma vez por sessão -> configurações.
+    # Ações que apagam coisas ficam por último no grupo. Controles da janela (⤢ ✕) sempre na ponta direita.
+    arrange(BTN, ["Modo barra (perto da XP)", "Checar chefe", "Perguntar à IA", "Regex"],
+            side="left", padx=(0, 4), pady=2)
     arrange(BTN, ["Ver/fechar árvore", "Site"], side="left", padx=(0, 4), pady=2)
     arrange(BTN, ["🏠 Início", "Abrir guia", "Novo personagem", "Zerar checklist"], side="left", padx=(0, 4), pady=2)
-    arrange(BTN, ["Conta PoE", "Client.txt", "Compacto"], side="left", padx=(0, 4), pady=2)
-    arrange(BAR, ["🏠 Início", "✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "Atalhos", "⤢", "✕"], side="left", padx=1, pady=4,
-            fill="y")
+
+    # Configurações em 4 grupos: Conta -> Teclas -> Janela -> Sistema
+    def cfg_group(title):
+        g = tk.Frame(cfg_a, bg=BG)
+        g.pack(fill="x", pady=(4, 0))
+        tk.Label(g, text=title, bg=BG, fg=MUTED, font=("Segoe UI", 8, "bold"), anchor="w").pack(fill="x")
+        r_ = tk.Frame(g, bg=BG)
+        r_.pack(fill="x")
+        return g, r_
+
+    g_acc, r_acc = cfg_group("CONTA E JOGO")
+    for name in ("Conta PoE", "Client.txt", "Chave do Claude"):
+        if BTN.get(name):
+            BTN[name].pack_forget()
+            BTN[name].pack(in_=r_acc, side="left", padx=(0, 4), pady=2)
+    g_keys, _r = cfg_group("TECLAS")
+    for fr in [sc_row] + key_rows + [row4]:
+        fr.pack_forget()
+        fr.pack(in_=g_keys, fill="x", pady=(2, 0))
+    g_win, r_win = cfg_group("JANELA")
+    if BTN.get("Compacto"):
+        BTN["Compacto"].pack_forget()
+        BTN["Compacto"].pack(in_=r_win, side="left", padx=(0, 4), pady=2)
+    for fr in (row2, row5, row_cwg):
+        fr.pack_forget()
+        fr.pack(in_=g_win, fill="x", pady=(2, 0))
+    g_sys, r_sys = cfg_group("SISTEMA")
+    for name in ("Atalho na área de trabalho", "Pasta de dados"):
+        if BTN.get(name):
+            BTN[name].pack_forget()
+            BTN[name].pack(in_=r_sys, side="left", padx=(0, 4), pady=2)
+
+    # Barra: passo atual -> jogo (árvore, gemas, chefe, regex, IA) -> | -> Início e Atalhos -> ⤢ ✕
+    if BAR.get("IA") is not None:
+        sep = tk.Frame(BAR["IA"].master, bg="#3a3f4b", width=1)
+        BAR["|"] = sep
+    arrange(BAR, ["✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "|", "🏠 Início", "Atalhos", "⤢", "✕"],
+            side="left", padx=1, pady=4, fill="y")
+    if BAR.get("|") is not None:
+        BAR["|"].pack_configure(padx=4, pady=8)
     root.mainloop()
+    if os.environ.get("FLPOE_SMOKE") and smoke_err:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
