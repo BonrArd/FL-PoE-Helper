@@ -1,4 +1,4 @@
-name: Gerar FL PoE Helper.exe
+name: Gerar FL PoE Helper (Windows e Linux)
 
 # Roda quando uma versão (release) é publicada, ou manualmente na aba Actions.
 on:
@@ -10,29 +10,60 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Instalar PyInstaller e Pillow
         run: pip install pyinstaller pillow
-
+      - name: Teste rápido (abre a janela e fecha)
+        shell: pwsh
+        run: |
+          $env:FLPOE_SMOKE = "1"
+          python src/fl_poe_helper.pyw
+          if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Gerar o .exe
         run: pyinstaller --noconfirm --onefile --windowed --name "FL-PoE-Helper" --icon src/fl_poe_helper.ico --collect-submodules PIL src/fl_poe_helper.pyw
-
-      - name: Guardar o .exe (aba Actions)
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: FL-PoE-Helper
+          name: FL-PoE-Helper-Windows
           path: dist/FL-PoE-Helper.exe
-
-      - name: Anexar o .exe na versão
+      - name: Anexar na versão
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/FL-PoE-Helper.exe
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependências do sistema
+        run: sudo apt-get update && sudo apt-get install -y python3-tk tk8.6 xvfb xdotool
+      - name: Instalar PyInstaller, Pillow e pynput
+        run: pip install pyinstaller pillow pynput
+      - name: Teste rápido (abre a janela e fecha)
+        run: FLPOE_SMOKE=1 xvfb-run -a python src/fl_poe_helper.pyw
+      - name: Gerar o executável Linux
+        run: >
+          pyinstaller --noconfirm --onefile --windowed --name "FL-PoE-Helper-Linux"
+          --collect-submodules PIL --collect-submodules pynput
+          --hidden-import pynput.keyboard._xorg --hidden-import pynput.mouse._xorg
+          src/fl_poe_helper.pyw
+      - name: Teste do executável
+        run: FLPOE_SMOKE=1 xvfb-run -a ./dist/FL-PoE-Helper-Linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FL-PoE-Helper-Linux
+          path: dist/FL-PoE-Helper-Linux
+      - name: Anexar na versão
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/FL-PoE-Helper-Linux
