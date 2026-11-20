@@ -3495,6 +3495,23 @@ def poe_is_foreground():
         return False, f"erro: {ex}"
 
 
+def fg_is_ours():
+    """True se a janela da frente é do próprio FL PoE Helper (não esconder nesse caso)."""
+    try:
+        if IS_WIN:
+            import ctypes
+            from ctypes import wintypes
+            u = ctypes.windll.user32
+            u.GetForegroundWindow.restype = wintypes.HWND
+            pid = wintypes.DWORD()
+            u.GetWindowThreadProcessId(u.GetForegroundWindow(), ctypes.byref(pid))
+            return pid.value == os.getpid()
+        out = _xdotool("getactivewindow", "getwindowpid")
+        return bool(out) and out.strip().isdigit() and int(out.strip()) == os.getpid()
+    except Exception:
+        return False
+
+
 def poe_running():
     """True se a janela do Path of Exile existe (aberto, mesmo minimizado). None se não der para saber."""
     if not IS_WIN:
@@ -3658,7 +3675,7 @@ def ensure_desktop_shortcut(cfg, force=False):
 UI_EMOJI_FALLBACK = {
     "💰": "$", "🤖": "IA", "🏠": "", "🧪": "", "💡": "", "🎮": "", "🌳": "", "📘": "",
     "⚙": "", "⚔": "", "⚖": "", "📍": "", "⚠": "!", "✅": "OK", "❌": "X", "▶": ">",
-    "▸": ">", "①": "1)", "②": "2)",
+    "▸": ">", "①": "1)", "②": "2)", "🗺": "",
 }
 
 
@@ -4789,6 +4806,17 @@ def run_app():
     tk.Checkbutton(row_cwg, text="Fechar o FL PoE Helper quando eu fechar o jogo", variable=cwg_var,
                    command=on_cwg, bg=BG, fg=MUTED, selectcolor=BG2, activebackground=BG,
                    activeforeground=FG, font=font_s).pack(side="left")
+
+    hide_var = tk.BooleanVar(value=cfg.get("hide_on_alttab", True))
+
+    def on_hide():
+        cfg["hide_on_alttab"] = hide_var.get()
+        save_config(cfg)
+    row_hide = tk.Frame(sec_cfg, bg=BG)
+    row_hide.pack(fill="x", pady=(2, 0))
+    tk.Checkbutton(row_hide, text="Sumir quando eu sair do jogo (alt+tab) e voltar sozinho",
+                   variable=hide_var, command=on_hide, bg=BG, fg=MUTED, selectcolor=BG2,
+                   activebackground=BG, activeforeground=FG, font=font_s).pack(side="left")
 
     tk.Checkbutton(row5, text="Transparente quando não estiver usando:", variable=fade_var,
                    command=on_fade_toggle, bg=BG, fg=MUTED, selectcolor=BG2, activebackground=BG,
@@ -6069,6 +6097,54 @@ def run_app():
         root.after(3000, watch_game)
     root.after(3000, watch_game)
 
+    # --- sumir no alt+tab e voltar quando o jogo voltar ---
+    cfg.setdefault("hide_on_alttab", True)
+    alt = {"hidden": [], "fora": 0}
+
+    def watch_alttab():
+        try:
+            if not cfg.get("hide_on_alttab", True):
+                if alt["hidden"]:
+                    for w in alt["hidden"]:
+                        try:
+                            w.deiconify()
+                        except Exception:
+                            pass
+                    alt["hidden"] = []
+            else:
+                em_foco, _ = poe_is_foreground()
+                nossa = fg_is_ours()
+                if alt["hidden"] and poe_running() is False:
+                    em_foco = True          # jogo fechou: devolve as janelas
+                if em_foco or nossa:
+                    alt["fora"] = 0
+                    if alt["hidden"]:
+                        for w in alt["hidden"]:
+                            try:
+                                w.deiconify()
+                            except Exception:
+                                pass
+                        alt["hidden"] = []
+                        dbg("alt+tab: voltou para o jogo, mostrando de novo")
+                elif not alt["hidden"] and poe_running():
+                    # só esconde se o jogo está aberto: senão o programa sumiria sem motivo
+                    alt["fora"] += 1
+                    if alt["fora"] >= 2:            # ~1 s fora, evita piscar
+                        for w in [root] + [c for c in root.winfo_children()
+                                           if isinstance(c, tk.Toplevel)]:
+                            try:
+                                if w.winfo_viewable():
+                                    w.withdraw()
+                                    alt["hidden"].append(w)
+                            except Exception:
+                                pass
+                        if alt["hidden"]:
+                            dbg("alt+tab: saiu do jogo, escondendo %d janela(s)" % len(alt["hidden"]))
+        except Exception:
+            pass
+        root.after(500, watch_alttab)
+    root.after(2000, watch_alttab)
+
     apply_compact()
     start_log()
     render()
@@ -6306,8 +6382,113 @@ def run_app():
 
     mk_btn(row_game, "Perguntar à IA", open_ask)
     bar_btn("IA", open_ask)
+    # ---------------------------------------------------------------- Atlas
+    def open_atlas():
+        w = tk.Toplevel(root)
+        w.title("Minha Atlas tree")
+        w.configure(bg=BG)
+        w.geometry("620x560")
+        dark_titlebar(w)
+        tk.Label(w, text=ui_text("🗺 Minha Atlas tree"), bg=BG, fg=ACCENT,
+                 font=("Segoe UI", 13, "bold")).pack(pady=(12, 0))
+        tk.Label(w, text="Cole aqui o link da sua Atlas tree. Fica salvo e você abre com um clique.",
+                 bg=BG, fg=MUTED, font=font_s).pack(pady=(2, 8))
+
+        cv = tk.Canvas(w, bg=BG, highlightthickness=0)
+        sb = tk.Scrollbar(w, orient="vertical", command=cv.yview)
+        inner = tk.Frame(cv, bg=BG)
+        inner.bind("<Configure>", lambda e: cv.configure(scrollregion=cv.bbox("all")))
+        cv.create_window((0, 0), window=inner, anchor="nw", width=572)
+        cv.configure(yscrollcommand=sb.set)
+        cv.pack(side="left", fill="both", expand=True, padx=(14, 0), pady=(0, 12))
+        sb.pack(side="right", fill="y", pady=(0, 12))
+        cv.bind_all("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120), "units"))
+
+        # --- campo do link ---
+        box = tk.Frame(inner, bg=BG2)
+        box.pack(fill="x", pady=(0, 10), ipady=8, ipadx=8)
+        tk.Label(box, text="Link da sua Atlas tree", bg=BG2, fg=ACCENT, font=font_b,
+                 anchor="w").pack(fill="x", padx=8, pady=(6, 2))
+        ent = tk.Entry(box, bg=BG, fg=FG, insertbackground=FG, relief="flat", font=font_s)
+        ent.insert(0, cfg.get("atlas_url", ""))
+        ent.pack(fill="x", padx=8, ipady=4)
+        aviso = tk.Label(box, text="", bg=BG2, fg=ACCENT, font=font_s, anchor="w")
+        aviso.pack(fill="x", padx=8, pady=(4, 0))
+
+        def salvar():
+            u = ent.get().strip()
+            if u and not u.startswith(("http://", "https://")):
+                u = "https://" + u
+            cfg["atlas_url"] = u
+            save_config(cfg)
+            aviso.config(text="OK, link salvo." if u else "Link apagado.", fg=ACCENT)
+
+        def abrir():
+            u = cfg.get("atlas_url", "").strip()
+            if not u:
+                aviso.config(text="Salve um link primeiro.", fg=WARN_FG)
+                return
+            webbrowser.open(u)
+        brow = tk.Frame(box, bg=BG2)
+        brow.pack(fill="x", padx=8, pady=(6, 2))
+        tk.Button(brow, text="Salvar", command=salvar, bg=ACCENT, fg="#0b0c0f", relief="flat",
+                  font=font_b, padx=14).pack(side="left")
+        tk.Button(brow, text="Abrir minha Atlas tree", command=abrir, bg=BG, fg=FG, relief="flat",
+                  font=font_s, padx=10).pack(side="left", padx=6)
+        ent.bind("<Return>", lambda e: salvar())
+
+        tk.Label(inner, text="Onde pegar o link: no jogo, abra o Atlas (tecla G) → botão de "
+                             "compartilhar; ou monte em um planejador e copie o endereço da barra "
+                             "do navegador.",
+                 bg=BG, fg=MUTED, font=font_s, anchor="w", justify="left",
+                 wraplength=560).pack(fill="x", pady=(0, 8))
+        pl = tk.Frame(inner, bg=BG)
+        pl.pack(fill="x", pady=(0, 12))
+        for txt, url in (("Atlas oficial (GGG)", "https://www.pathofexile.com/atlas-skill-tree"),
+                         ("poeplanner", "https://poeplanner.com/atlas-tree"),
+                         ("maxroll (estratégias)",
+                          "https://maxroll.gg/poe/category/currency-farming")):
+            tk.Button(pl, text=txt, bg=BG2, fg=FG, relief="flat", font=font_s, padx=8,
+                      command=lambda u=url: webbrowser.open(u)).pack(side="left", padx=(0, 6))
+
+        # --- Voidstones ---
+        tk.Label(inner, text="Voidstones — o que falta", bg=BG, fg=ACCENT,
+                 font=font_b, anchor="w").pack(fill="x")
+        ck = cfg.setdefault("checks", {})
+        resumo_vs = tk.Label(inner, text="", bg=BG, fg=ACCENT, font=font_b, anchor="w")
+
+        def marcar(i, var):
+            ck["vs:%d" % i] = bool(var.get())
+            save_config(cfg)
+            atualizar_resumo()
+        for i, nome in enumerate(VOIDSTONES):
+            var = tk.BooleanVar(value=bool(ck.get("vs:%d" % i)))
+            tk.Checkbutton(inner, text=ui_text(nome), variable=var, bg=BG, fg=FG,
+                           selectcolor=BG2, activebackground=BG, activeforeground=ACCENT,
+                           font=font_s, anchor="w", justify="left", wraplength=540,
+                           command=lambda k=i, v=var: marcar(k, v)).pack(fill="x")
+
+        n_vs = sum(1 for i in range(len(VOIDSTONES)) if ck.get("vs:%d" % i))
+        title, resumo, dicas = farm_stage(n_vs)
+        resumo_vs.pack(fill="x", pady=(10, 2))
+
+        def atualizar_resumo():
+            n = sum(1 for i in range(len(VOIDSTONES)) if ck.get("vs:%d" % i))
+            resumo_vs.config(text="Com %d de %d Voidstones, foque a Atlas em:"
+                                  % (n, len(VOIDSTONES)))
+        atualizar_resumo()
+        tk.Label(inner, text=resumo, bg=BG, fg=MUTED, font=font_s, anchor="w", justify="left",
+                 wraplength=560).pack(fill="x", pady=(0, 4))
+        for d in dicas:
+            tk.Label(inner, text="• " + d, bg=BG, fg=FG, font=font_s, anchor="w", justify="left",
+                     wraplength=550).pack(fill="x")
+        tk.Label(inner, text=ui_text(FARM_FOOTER), bg=BG, fg=WARN_FG, font=font_s, anchor="w",
+                 justify="left", wraplength=560).pack(fill="x", pady=(10, 12))
+
     mk_btn(row_game, "💰 Divines", open_farm_tips)
+    mk_btn(row_tree, "🗺 Atlas", open_atlas)
     bar_btn("💰", open_farm_tips)
+    bar_btn("Atlas", open_atlas)
     mk_btn(cfg_a, "Chave do Claude", set_claude_key)
 
     def arrange(reg, order, **pk):
@@ -6322,7 +6503,7 @@ def run_app():
     # Ações que apagam coisas ficam por último no grupo. Controles da janela (⤢ ✕) sempre na ponta direita.
     arrange(BTN, ["Modo barra (perto da XP)", "Checar chefe", "Perguntar à IA", "💰 Divines", "Regex"],
             side="left", padx=(0, 4), pady=2)
-    arrange(BTN, ["Ver/fechar árvore", "Site"], side="left", padx=(0, 4), pady=2)
+    arrange(BTN, ["Ver/fechar árvore", "🗺 Atlas", "Site"], side="left", padx=(0, 4), pady=2)
     arrange(BTN, ["🏠 Início", "Abrir guia", "Novo personagem", "Zerar checklist"], side="left", padx=(0, 4), pady=2)
 
     # Configurações em 4 grupos: Conta -> Teclas -> Janela -> Sistema
@@ -6360,7 +6541,7 @@ def run_app():
     if BAR.get("IA") is not None:
         sep = tk.Frame(BAR["IA"].master, bg="#3a3f4b", width=1)
         BAR["|"] = sep
-    arrange(BAR, ["✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "💰", "|", "🏠 Início", "Atalhos", "⤢", "✕"],
+    arrange(BAR, ["✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "💰", "Atlas", "|", "🏠 Início", "Atalhos", "⤢", "✕"],
             side="left", padx=1, pady=4, fill="y")
     if BAR.get("|") is not None:
         BAR["|"].pack_configure(padx=4, pady=8)
@@ -6369,7 +6550,7 @@ def run_app():
         # Nada de root.update() aninhado nem destroy() manual: isso trava o Tk no Linux.
         def _smoke_step(i):
             steps = [("pos-campanha", None), ("farm", open_farm_tips), ("home", open_home),
-                     ("ask", open_ask)]
+                     ("ask", open_ask), ("atlas", open_atlas)]
             if i >= len(steps):
                 print("SMOKE_WINDOWS_DONE", flush=True)
                 return
