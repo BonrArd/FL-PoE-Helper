@@ -1624,12 +1624,102 @@ def nav_for(zone, act):
     return ZONE_NAV.get((zone, act), "")
 
 
+# Voidstones da 3.30, na ordem recomendada de conquista (quadrante do Atlas entre parênteses).
+# Atenção: Exarch e Eater dão UMA pedra só (a Eldritch), não duas.
 VOIDSTONES = [
-    "Ceremonial Voidstone — The Maven",
-    "Decayed Voidstone — Uber Elder",
-    "Grasping Voidstone — The Eater of Worlds",
-    "Omniscient Voidstone — The Searing Exarch",
+    "1ª Eldritch (canto inf. esquerdo) — matar Searing Exarch E Eater of Worlds",
+    "2ª Originator (canto sup. esquerdo) — matar Incarnation of Dread",
+    "3ª Decayed (canto sup. direito) — matar Shaper e Elder",
+    "4ª Ceremonial (canto inf. direito) — matar The Maven",
 ]
+
+# ---------------------------------------------------------------------------
+# Como farmar divine em cada etapa do Atlas (liga 3.30 Covens of Umbra)
+# ---------------------------------------------------------------------------
+# Cada etapa: (título, resumo, [dicas]). O programa escolhe pela quantidade de
+# Voidstones marcadas no checklist.
+FARM_STAGES = [
+    ("Etapa 0 — Sem Voidstone: juntar o primeiro capital",
+     "Mapas brancos e amarelos. Aqui o objetivo não é divine, é VELOCIDADE: quanto antes chegar "
+     "nas 2 primeiras pedras, antes o dinheiro começa de verdade.",
+     [
+         "Receita do caos é a sua base de renda agora: junte o set completo nível 60+ "
+         "(arma, elmo, peito, luvas, botas, cinto, amuleto, 2 anéis) e venda. Não identificado vale mais.",
+         "Árvore do Atlas: pegue primeiro os 3 nós de Essence, depois os nós de queda de mapa (para subir "
+         "de tier), volte nos de Essence e termine nos de Strongbox.",
+         "Corra para os mapas amarelos: mapa branco só solta Essence até Screaming; amarelo libera Shrieking, "
+         "que vale bem mais.",
+         "Antes de abrir o mapa, leia os mods: nada de 'no leech', 'reduced recovery' ou reflect de caos "
+         "com a PConc. Um mapa ruim custa mais caro do que o tempo de rerrolar.",
+         "Missões Eldritch e bônus de conclusão vêm antes de tudo. Deixe o farm bonito para depois.",
+         "Venda o lixo útil no Faustus (Currency Exchange) em vez de deixar parado na aba.",
+     ]),
+    ("Etapa 1 — 1ª Voidstone (Eldritch): subir de tier",
+     "Com a Eldritch encaixada os mapas daquele quadrante sobem de tier. Agora dá para começar a "
+     "escolher uma mecânica e repetir.",
+     [
+         "Rota das pedras: canto inferior esquerdo (Exarch/Eater) → superior esquerdo (Incarnation) → "
+         "superior direito (Shaper/Elder) → inferior direito (Maven). Essa ordem é da mais fácil para a mais difícil.",
+         "Exarch e Eater não precisam de fragmento: eles abrem sozinhos conforme você corre mapas. "
+         "Corra até o Envoy aparecer.",
+         "Priorize 'Destructive Play' na árvore do Atlas: é o nó que invoca os chefes e acelera as pedras.",
+         "Se a build ainda está fraca para mapa vermelho, rode como MÁGICO (azul) em vez de raro corrompido. "
+         "Você perde o ponto de passiva, mas a missão conta e você chega nos chefes muito antes.",
+         "Comece a escolher UMA mecânica para repetir. Para Pathfinder rápida: Essence, Abyss ou Expedition.",
+     ]),
+    ("Etapa 2 — 2 Voidstones: o dinheiro começa de verdade",
+     "Esta é a virada. O que você ganha depois das duas primeiras pedras é muito maior do que tudo "
+     "que veio antes. Hora de parar de 'alch and go' e montar uma estratégia.",
+     [
+         "Escolha uma estratégia e repita 50+ mapas antes de julgar. Trocar toda hora é o que mais faz "
+         "gente ficar pobre.",
+         "Harvest (reformulado na 3.30): o Sacred Grove acabou; agora você caça Sacred Flora dentro dos mapas "
+         "normais e junta Lifeforce. Relatos da primeira semana colocam o alch-and-go de Harvest em T16 como "
+         "uma das estratégias mais lucrativas da liga.",
+         "Abyss: funciona com build meia-boca e em tier baixo. Tem relato de 50 mapas T1 rendendo alguns "
+         "divines em drop puro mais uns 190 caos em itens.",
+         "Expedition continua sendo renda sólida e previsível, boa para quem não quer depender de sorte.",
+         "Threads of Creation: na 3.30 os Scarabs acabaram e foram trocados por Threads, que turbinam uma "
+         "mecânica específica (Legion, Blight, Expedition...). Invista os Threads na SUA mecânica, não espalhe.",
+         "A mecânica da liga (Covens of Umbra) solta divine nos chefes empoderados e os Remains. Vale fazer "
+         "de passagem, se a sua build mata o chefe rápido. Se travar o mapa, pule.",
+     ]),
+    ("Etapa 3 — 3 Voidstones: escalar e investir",
+     "Quase todos os mapas em T16. Agora o lucro vem de investir currency no mapa antes de abrir, "
+     "não de correr mais rápido.",
+     [
+         "Pare de rodar mapa cru. Invista: Threads na sua mecânica, mapa bem rolado e a árvore do Atlas "
+         "toda comprometida com UMA coisa.",
+         "Shaped Regions garantem a mecânica que você quer dentro da região. Use isso para nunca abrir um "
+         "mapa sem a sua mecânica dentro.",
+         "Ritual com Mirage é uma das estratégias mais fortes da 3.30: a janela de recompensa mostra divine, "
+         "ancient orb, cartas e bases boas, e você escolhe o que levar.",
+         "Faça a conta: anote quantos divines você tira por hora. Se uma estratégia não paga o investimento "
+         "em 10 mapas, ela não é a sua.",
+         "Venda em bloco (bulk) no Currency Exchange. Vender de 1 em 1 no trade é onde o tempo evapora.",
+     ]),
+    ("Etapa 4 — 4 Voidstones: Atlas completo",
+     "Tudo em T16. A partir daqui a renda vem de chefe, de mecânica turbinada ao máximo e de crafting.",
+     [
+         "Farm de chefe pinnacle: junte fragmentos e venda as carries, ou mate você mesmo. Maven e Uber "
+         "são onde estão os drops caros.",
+         "Nightmare Maps: cada Voidstone encaixada dá chance de o mapa T16 virar Nightmare. Com as 4, essa "
+         "chance é a maior possível. Não jogue esses mapas fora.",
+         "Invista pesado em uma só mecânica, com Threads, Shaped Region e a árvore inteira voltada para ela.",
+         "Troque farm por crafting: com Lifeforce e essências sobrando, dá mais lucro criar o item do que "
+         "vender o material.",
+         "Reinvista até uns 50 divines na build. Depois disso, pense se vale subir a PConc ou começar outro "
+         "personagem: o guia sugere considerar a troca nesse ponto.",
+     ]),
+]
+
+FARM_FOOTER = ("⚠ A economia muda toda semana. Antes de investir pesado, confira os preços no poe.ninja e "
+               "o que está rendendo agora (maxroll, reddit da liga). Estas dicas são do começo da 3.30.")
+
+
+def farm_stage(n_stones):
+    """Dicas de farm conforme quantas Voidstones já foram marcadas (0 a 4)."""
+    return FARM_STAGES[max(0, min(len(FARM_STAGES) - 1, n_stones))]
 
 UPGRADES = [
     "Fury Valve (amuleto) — só funciona com PConc of Bouncing",
@@ -4046,6 +4136,65 @@ def run_app():
         show_warning("Tecla alterada. Feche e abra o programa para valer.")
     hk_var.trace_add("write", on_hk)
 
+    # --- 💰 dicas de farm de divine (por Voidstone) ---
+    farm_win = {"w": None}
+
+    def open_farm_tips():
+        if farm_win["w"] is not None and farm_win["w"].winfo_exists():
+            farm_win["w"].destroy()
+            farm_win["w"] = None
+            return
+        w = tk.Toplevel(root)
+        farm_win["w"] = w
+        w.title("Como farmar divine")
+        w.configure(bg=BG)
+        w.attributes("-topmost", True)
+        sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+        hh = min(760, sh - 60)
+        w.geometry(f"620x{hh}+{(sw - 620) // 2}+{max(10, (sh - hh) // 2)}")
+        tk.Label(w, text="💰 Como farmar divine", bg=BG, fg=ACCENT,
+                 font=("Segoe UI", 15, "bold")).pack(pady=(12, 0))
+        n_vs = sum(1 for i in range(len(VOIDSTONES)) if cfg["checks"].get(f"vs:{i}"))
+        tk.Label(w, text=f"Você marcou {n_vs} de {len(VOIDSTONES)} Voidstones.", bg=BG, fg=MUTED,
+                 font=font_s).pack()
+
+        wrap = tk.Frame(w, bg=BG)
+        wrap.pack(fill="both", expand=True, padx=12, pady=8)
+        cv = tk.Canvas(wrap, bg=BG, highlightthickness=0)
+        sb = tk.Scrollbar(wrap, orient="vertical", command=cv.yview)
+        inner = tk.Frame(cv, bg=BG)
+        inner.bind("<Configure>", lambda e: cv.configure(scrollregion=cv.bbox("all")))
+        cv.create_window((0, 0), window=inner, anchor="nw", width=560)
+        cv.configure(yscrollcommand=sb.set)
+        cv.pack(side="left", fill="both", expand=True)
+        sb.pack(side="right", fill="y")
+        cv.bind_all("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120), "units"))
+
+        for i, (title, resumo, dicas) in enumerate(FARM_STAGES):
+            agora = (i == max(0, min(len(FARM_STAGES) - 1, n_vs)))
+            box = tk.Frame(inner, bg=BG2 if agora else BG, padx=10, pady=8,
+                           highlightthickness=2 if agora else 0, highlightbackground=ACCENT)
+            box.pack(fill="x", pady=4)
+            tk.Label(box, text=("▶ VOCÊ ESTÁ AQUI — " if agora else "") + title,
+                     bg=box["bg"], fg=ACCENT if agora else FG, font=font_b, anchor="w",
+                     justify="left", wraplength=520).pack(fill="x")
+            tk.Label(box, text=resumo, bg=box["bg"], fg=MUTED, font=font_s, anchor="w",
+                     justify="left", wraplength=520).pack(fill="x", pady=(2, 6))
+            for d in dicas:
+                tk.Label(box, text="•  " + d, bg=box["bg"], fg=FG, font=font_s, anchor="w",
+                         justify="left", wraplength=505).pack(fill="x", pady=1)
+
+        tk.Label(inner, text=FARM_FOOTER, bg=BG, fg=WARN_FG, font=font_s, anchor="w",
+                 justify="left", wraplength=540).pack(fill="x", pady=(10, 4))
+        links = tk.Frame(inner, bg=BG)
+        links.pack(fill="x", pady=(0, 10))
+        for txt, url in (("poe.ninja (preços)", "https://poe.ninja/"),
+                         ("maxroll (estratégias)", "https://maxroll.gg/poe/category/currency-farming"),
+                         ("Perguntar à IA", None)):
+            tk.Button(links, text=txt, bg=BG2, fg=FG, relief="flat", font=font_s, padx=8,
+                      command=(open_ask if url is None else (lambda u=url: webbrowser.open(u)))
+                      ).pack(side="left", padx=(0, 6))
+
     # --- render ---
     check_vars = {}
 
@@ -4128,6 +4277,24 @@ def run_app():
                      anchor="w").pack(fill="x", pady=(10, 2))
             for i, v in enumerate(VOIDSTONES):
                 check_row(cfg["checks"], f"vs:{i}", v)
+
+            # Dicas de farm conforme as Voidstones já conquistadas
+            n_vs = sum(1 for i in range(len(VOIDSTONES)) if cfg["checks"].get(f"vs:{i}"))
+            title, resumo, dicas = farm_stage(n_vs)
+            fbox = tk.Frame(body, bg=BG2, padx=8, pady=6)
+            fbox.pack(fill="x", pady=(8, 2))
+            tk.Label(fbox, text="💰 Como farmar divine agora", bg=BG2, fg=ACCENT, font=font_b,
+                     anchor="w").pack(fill="x")
+            tk.Label(fbox, text=title, bg=BG2, fg=FG, font=font_s, anchor="w", justify="left",
+                     wraplength=330).pack(fill="x")
+            tk.Label(fbox, text=resumo, bg=BG2, fg=MUTED, font=font_s, anchor="w", justify="left",
+                     wraplength=330).pack(fill="x", pady=(2, 4))
+            for d in dicas[:2]:
+                tk.Label(fbox, text="• " + d, bg=BG2, fg=FG, font=font_s, anchor="w", justify="left",
+                         wraplength=330).pack(fill="x")
+            tk.Button(fbox, text=f"Ver as {len(dicas)} dicas desta etapa ▸", command=open_farm_tips,
+                      bg=ACCENT, fg="#0b0c0f", relief="flat", activebackground="#a8f0a8",
+                      font=font_b, padx=8).pack(anchor="w", pady=(6, 0))
             for i, u in enumerate(UPGRADES if GUIDE["mode"] == "pconc" else []):
                 if i == 0:
                     tk.Label(body, text="Upgrades da build (ordem do guia)", bg=BG, fg=ACCENT, font=font_b,
@@ -5963,6 +6130,8 @@ def run_app():
 
     mk_btn(row_game, "Perguntar à IA", open_ask)
     bar_btn("IA", open_ask)
+    mk_btn(row_game, "💰 Divines", open_farm_tips)
+    bar_btn("💰", open_farm_tips)
     mk_btn(cfg_a, "Chave do Claude", set_claude_key)
 
     def arrange(reg, order, **pk):
@@ -5975,7 +6144,7 @@ def run_app():
     # ===== ORDEM DOS MENUS =====
     # Regra: do que se usa a cada minuto jogando -> o que se usa uma vez por sessão -> configurações.
     # Ações que apagam coisas ficam por último no grupo. Controles da janela (⤢ ✕) sempre na ponta direita.
-    arrange(BTN, ["Modo barra (perto da XP)", "Checar chefe", "Perguntar à IA", "Regex"],
+    arrange(BTN, ["Modo barra (perto da XP)", "Checar chefe", "Perguntar à IA", "💰 Divines", "Regex"],
             side="left", padx=(0, 4), pady=2)
     arrange(BTN, ["Ver/fechar árvore", "Site"], side="left", padx=(0, 4), pady=2)
     arrange(BTN, ["🏠 Início", "Abrir guia", "Novo personagem", "Zerar checklist"], side="left", padx=(0, 4), pady=2)
@@ -6015,10 +6184,33 @@ def run_app():
     if BAR.get("IA") is not None:
         sep = tk.Frame(BAR["IA"].master, bg="#3a3f4b", width=1)
         BAR["|"] = sep
-    arrange(BAR, ["✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "|", "🏠 Início", "Atalhos", "⤢", "✕"],
+    arrange(BAR, ["✓", "Árvore", "Gemas", "Boss?", "Regex", "IA", "💰", "|", "🏠 Início", "Atalhos", "⤢", "✕"],
             side="left", padx=1, pady=4, fill="y")
     if BAR.get("|") is not None:
         BAR["|"].pack_configure(padx=4, pady=8)
+    if os.environ.get("FLPOE_SMOKE"):
+        def _smoke_exercise():
+            """Teste automático: abre cada janela uma vez e confere que nenhuma deu erro."""
+            cfg.setdefault("checks", {})
+            for i in range(2):
+                cfg["checks"][f"vs:{i}"] = True        # finge 2 Voidstones
+            view_act.set(11)
+            render()
+            for name, fn in (("farm", open_farm_tips), ("home", open_home), ("ask", open_ask)):
+                try:
+                    fn()
+                    root.update()
+                    print("SMOKE_WIN_OK " + name, flush=True)
+                except Exception as ex:
+                    import traceback
+                    smoke_err.append(f"{name}: {ex}")
+                    print(f"SMOKE_ERROR janela {name}\n" + traceback.format_exc(), file=sys.stderr,
+                          flush=True)
+            for w in list(root.winfo_children()):
+                if isinstance(w, tk.Toplevel):
+                    w.destroy()
+        root.after(2500, _smoke_exercise)
+
     root.mainloop()
     if os.environ.get("FLPOE_SMOKE") and smoke_err:
         sys.exit(1)
