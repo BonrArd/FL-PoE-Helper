@@ -3786,7 +3786,7 @@ def run_app():
     root = tk.Tk()
     set_app_icon(root)
     if os.environ.get("FLPOE_SMOKE"):
-        root.after(int(os.environ.get("FLPOE_SMOKE_MS", "6000")), lambda: (print("SMOKE_OK", flush=True),
+        root.after(int(os.environ.get("FLPOE_SMOKE_MS", "9000")), lambda: (print("SMOKE_OK", flush=True),
                                                                           root.destroy()))
     _darked = set()
 
@@ -6189,27 +6189,31 @@ def run_app():
     if BAR.get("|") is not None:
         BAR["|"].pack_configure(padx=4, pady=8)
     if os.environ.get("FLPOE_SMOKE"):
-        def _smoke_exercise():
-            """Teste automático: abre cada janela uma vez e confere que nenhuma deu erro."""
-            cfg.setdefault("checks", {})
-            for i in range(2):
-                cfg["checks"][f"vs:{i}"] = True        # finge 2 Voidstones
-            view_act.set(11)
-            render()
-            for name, fn in (("farm", open_farm_tips), ("home", open_home), ("ask", open_ask)):
-                try:
+        # Teste automático: abre uma janela por vez, cada uma no seu próprio tique do Tk.
+        # Nada de root.update() aninhado nem destroy() manual: isso trava o Tk no Linux.
+        def _smoke_step(i):
+            steps = [("pos-campanha", None), ("farm", open_farm_tips), ("home", open_home),
+                     ("ask", open_ask)]
+            if i >= len(steps):
+                print("SMOKE_WINDOWS_DONE", flush=True)
+                return
+            name, fn = steps[i]
+            try:
+                if fn is None:
+                    cfg.setdefault("checks", {})
+                    for k in range(2):
+                        cfg["checks"][f"vs:{k}"] = True       # finge 2 Voidstones
+                    view_act.set(11)                          # a aba já redesenha sozinha
+                else:
                     fn()
-                    root.update()
-                    print("SMOKE_WIN_OK " + name, flush=True)
-                except Exception as ex:
-                    import traceback
-                    smoke_err.append(f"{name}: {ex}")
-                    print(f"SMOKE_ERROR janela {name}\n" + traceback.format_exc(), file=sys.stderr,
-                          flush=True)
-            for w in list(root.winfo_children()):
-                if isinstance(w, tk.Toplevel):
-                    w.destroy()
-        root.after(2500, _smoke_exercise)
+                print("SMOKE_WIN_OK " + name, flush=True)
+            except Exception as ex:
+                import traceback
+                smoke_err.append(f"{name}: {ex}")
+                print(f"SMOKE_ERROR janela {name}\n" + traceback.format_exc(), file=sys.stderr,
+                      flush=True)
+            root.after(400, lambda: _smoke_step(i + 1))
+        root.after(1500, lambda: _smoke_step(0))
 
     root.mainloop()
     if os.environ.get("FLPOE_SMOKE") and smoke_err:
