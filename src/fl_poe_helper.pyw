@@ -1713,6 +1713,87 @@ FARM_STAGES = [
      ]),
 ]
 
+# ---------------------------------------------------------------------------
+# Escada de upgrades por orçamento (PConc of Bouncing Pathfinder)
+# ---------------------------------------------------------------------------
+# (faixa, título, o que o jogo exige nessa hora, [o que comprar, em ordem])
+# Os preços mudam toda semana: use Ctrl+D em cima do item para ver o preço de hoje.
+BUDGET_STAGES = [
+    (0, "0 divine — primeiro arrume o básico (nada de item caro ainda)",
+     "O jogo aqui não exige item caro, exige que você não morra. Resistência e vida valem mais do "
+     "que qualquer unique neste momento.",
+     [
+         "CAPAR as 3 resistências elementais em 75%. Isso vem de raro barato, não de divine. "
+         "Use o Boss? do programa para conferir antes de cada chefe.",
+         "Vida: mire 3.000+ para entrar em mapas amarelos, 4.000+ para vermelhos.",
+         "5-link na Poisonous Concoction já serve. 6-link pode esperar.",
+         "Frascos certos: Life Flask é obrigatório (a PConc consome carga dele), Quicksilver, "
+         "e um de antídoto para curse/freeze.",
+         "Mark of Submission (anel): custa quase nada e dá curse automático. Compre já.",
+         "Cloak of Flame (peito): barato e segura muito dano físico até você ter grana.",
+     ]),
+    (1, "1 divine — os dois itens que mudam o dano",
+     "A build já roda. Agora o jogo começa a exigir dano para os mapas amarelos não demorarem.",
+     [
+         "Fury Valve (amuleto): é O item da variante Bouncing. Faz os projéteis ricochetearem. "
+         "Se só der para comprar um item, compre este.",
+         "Medium Cluster Jewel com Follow Through: dano grande por pouco dinheiro.",
+         "Gemas de qualidade 20% e nível 20: barato e dá dano de graça.",
+         "Sobrou? Jóias comuns com vida + resistência para liberar espaço na árvore.",
+     ]),
+    (5, "5 divines — sobrevivência para mapas vermelhos",
+     "Mapa vermelho e os primeiros chefes de Atlas exigem que você aguente um hit. É aqui que a "
+     "maioria empaca e fica morrendo.",
+     [
+         "Doppelgänger Guise (peito, modo Sane): troca do Cloak of Flame, sobe muito a defesa.",
+         "Death Rush e/ou Betrayal's Sting (anéis). Use Noxious Catalyst no Betrayal's para subir o caos.",
+         "Chaos Resistance positiva: a partir daqui o dano de caos começa a matar de surpresa.",
+         "Botas com 30% de movimento e vida. Barato e você sente na hora.",
+         "6-link na PConc, se ainda não tiver.",
+     ]),
+    (10, "10 divines — o salto de qualidade",
+     "Com o Atlas andando, o jogo exige dano sustentado e capacidade de matar chefe de mapa sem "
+     "tomar 3 minutos.",
+     [
+         "Watcher's Eye: escolha pelo que falta. Grace = evasão, Precision = velocidade de ataque, "
+         "Malevolence = DoT multiplier (o mais caro e o melhor para veneno).",
+         "Ancestral Vision (jóia): imunidade a ailment elemental. Resolve congelar e chocar de uma vez.",
+         "Brutal Restraint (Asenath) com notáveis bons: dano e utilidade no mesmo slot.",
+         "Eternal Lab para a 4ª ascendência (Master Surgeon), se ainda não fez. Não custa divine, "
+         "custa tempo, e vale mais que item nesta faixa.",
+         "Jóias com % de vida máxima + dano de caos.",
+     ]),
+    (25, "25 divines — luxo e conforto",
+     "A build já faz todo o conteúdo normal. O que o jogo exige agora é consistência para farmar "
+     "sem morrer e sem parar.",
+     [
+         "Progenesis (frasco): um dos maiores saltos de sobrevivência do jogo.",
+         "The Tides of Time: conforto e defesa.",
+         "The Light of Meaning (jóia) se você foi pela variante de dano de caos.",
+         "Opcional: Beacon of Madness para o setup Explode, com troca de escudo.",
+         "Enchant no elmo e corrupções boas nos uniques.",
+     ]),
+    (50, "50+ divines — hora de decidir",
+     "A PConc já deu o que tinha que dar. A partir daqui cada divine rende pouco nela.",
+     [
+         "O próprio guia sugere parar por volta de 50 divines e pensar se vale continuar subindo "
+         "esta build ou começar outro personagem (ex.: Viper Strike of the Mamba).",
+         "Se continuar: jóias perfeitas, Watcher's Eye com 2 mods bons, itens corrompidos de alto rolo.",
+         "Se trocar: guarde a currency, não venda os uniques baratos — você reusa no próximo.",
+         "Uber bosses: a partir daqui dá para começar a tentar, mas confira o Boss? antes.",
+     ]),
+]
+
+
+def budget_stage(divines):
+    """Etapa da escada de upgrades para a quantidade de divines informada."""
+    cur = BUDGET_STAGES[0]
+    for st in BUDGET_STAGES:
+        if divines >= st[0]:
+            cur = st
+    return cur
+
+
 FARM_FOOTER = ("⚠ A economia muda toda semana. Antes de investir pesado, confira os preços no poe.ninja e "
                "o que está rendendo agora (maxroll, reddit da liga). Estas dicas são do começo da 3.30.")
 
@@ -3572,6 +3653,27 @@ def ensure_desktop_shortcut(cfg, force=False):
     return False
 
 
+# O Tk do Linux pode travar (segfault) ao desenhar emoji colorido. No Windows mostramos o emoji;
+# fora dele trocamos por um texto equivalente, para o programa não fechar sozinho.
+UI_EMOJI_FALLBACK = {
+    "💰": "$", "🤖": "IA", "🏠": "", "🧪": "", "💡": "", "🎮": "", "🌳": "", "📘": "",
+    "⚙": "", "⚔": "", "⚖": "", "📍": "", "⚠": "!", "✅": "OK", "❌": "X", "▶": ">",
+    "▸": ">", "①": "1)", "②": "2)",
+}
+
+
+def ui_text(s):
+    """Texto seguro para botão/rótulo: fora do Windows, troca o emoji que pode travar o Tk."""
+    if IS_WIN or not isinstance(s, str) or not s:
+        return s
+    out = s
+    for emo, alt in UI_EMOJI_FALLBACK.items():
+        if emo in out:
+            out = out.replace(emo, alt)
+    out = " ".join(out.split())
+    return out or s
+
+
 def dark_titlebar(win, color="#0f1115"):
     """Barra de título escura (Windows 10/11), da mesma cor do programa, no lugar da barra branca."""
     if os.name != "nt":
@@ -3897,6 +3999,7 @@ def run_app():
 
     # menus organizados em grupos, na ordem de uso
     def section(title):
+        title = ui_text(title)
         f = tk.Frame(foot, bg=BG)
         f.pack(fill="x", pady=(6, 0))
         tk.Label(f, text=title, bg=BG, fg=ACCENT, font=font_b, anchor="w").pack(fill="x")
@@ -3924,7 +4027,7 @@ def run_app():
     BTN = {}
 
     def mk_btn(parent, text, cmd):
-        b = tk.Button(parent, text=text, command=cmd, bg=BG2, fg=FG, relief="flat",
+        b = tk.Button(parent, text=ui_text(text), command=cmd, bg=BG2, fg=FG, relief="flat",
                       activebackground="#2a2f3a", activeforeground=ACCENT, font=font_s, padx=6)
         b.pack(side="left", padx=(0, 4), pady=2)
         BTN[text] = b
@@ -4152,11 +4255,29 @@ def run_app():
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
         hh = min(760, sh - 60)
         w.geometry(f"620x{hh}+{(sw - 620) // 2}+{max(10, (sh - hh) // 2)}")
-        tk.Label(w, text="💰 Como farmar divine", bg=BG, fg=ACCENT,
+        tk.Label(w, text=ui_text("💰 Divines: como ganhar e onde gastar"), bg=BG, fg=ACCENT,
                  font=("Segoe UI", 15, "bold")).pack(pady=(12, 0))
         n_vs = sum(1 for i in range(len(VOIDSTONES)) if cfg["checks"].get(f"vs:{i}"))
-        tk.Label(w, text=f"Você marcou {n_vs} de {len(VOIDSTONES)} Voidstones.", bg=BG, fg=MUTED,
-                 font=font_s).pack()
+
+        # troca de aba: GANHAR (por Voidstone) / GASTAR (por orçamento)
+        tabs = tk.Frame(w, bg=BG)
+        tabs.pack(pady=(6, 0))
+        tab = {"cur": cfg.get("farm_tab", "ganhar")}
+        tab_btns = {}
+
+        def set_tab(name):
+            tab["cur"] = name
+            cfg["farm_tab"] = name
+            save_config(cfg)
+            for k, b in tab_btns.items():
+                b.config(bg=ACCENT if k == name else BG2, fg="#0b0c0f" if k == name else FG)
+            draw_tab()
+
+        for key, label in (("ganhar", ui_text("① GANHAR divine")), ("gastar", ui_text("② GASTAR divine"))):
+            b = tk.Button(tabs, text=label, relief="flat", font=font_b, padx=14, pady=4,
+                          command=lambda k=key: set_tab(k))
+            b.pack(side="left", padx=4)
+            tab_btns[key] = b
 
         wrap = tk.Frame(w, bg=BG)
         wrap.pack(fill="both", expand=True, padx=12, pady=8)
@@ -4170,12 +4291,11 @@ def run_app():
         sb.pack(side="right", fill="y")
         cv.bind_all("<MouseWheel>", lambda e: cv.yview_scroll(int(-e.delta / 120), "units"))
 
-        for i, (title, resumo, dicas) in enumerate(FARM_STAGES):
-            agora = (i == max(0, min(len(FARM_STAGES) - 1, n_vs)))
+        def etapa_box(title, resumo, dicas, agora):
             box = tk.Frame(inner, bg=BG2 if agora else BG, padx=10, pady=8,
                            highlightthickness=2 if agora else 0, highlightbackground=ACCENT)
             box.pack(fill="x", pady=4)
-            tk.Label(box, text=("▶ VOCÊ ESTÁ AQUI — " if agora else "") + title,
+            tk.Label(box, text=ui_text(("▶ VOCÊ ESTÁ AQUI — " if agora else "") + title),
                      bg=box["bg"], fg=ACCENT if agora else FG, font=font_b, anchor="w",
                      justify="left", wraplength=520).pack(fill="x")
             tk.Label(box, text=resumo, bg=box["bg"], fg=MUTED, font=font_s, anchor="w",
@@ -4184,16 +4304,65 @@ def run_app():
                 tk.Label(box, text="•  " + d, bg=box["bg"], fg=FG, font=font_s, anchor="w",
                          justify="left", wraplength=505).pack(fill="x", pady=1)
 
-        tk.Label(inner, text=FARM_FOOTER, bg=BG, fg=WARN_FG, font=font_s, anchor="w",
-                 justify="left", wraplength=540).pack(fill="x", pady=(10, 4))
-        links = tk.Frame(inner, bg=BG)
-        links.pack(fill="x", pady=(0, 10))
-        for txt, url in (("poe.ninja (preços)", "https://poe.ninja/"),
-                         ("maxroll (estratégias)", "https://maxroll.gg/poe/category/currency-farming"),
-                         ("Perguntar à IA", None)):
-            tk.Button(links, text=txt, bg=BG2, fg=FG, relief="flat", font=font_s, padx=8,
-                      command=(open_ask if url is None else (lambda u=url: webbrowser.open(u)))
-                      ).pack(side="left", padx=(0, 6))
+        def draw_tab():
+            for ch in inner.winfo_children():
+                ch.destroy()
+            cv.yview_moveto(0)
+            if tab["cur"] == "ganhar":
+                tk.Label(inner, text=f"Você marcou {n_vs} de {len(VOIDSTONES)} Voidstones. "
+                                     "As dicas mudam conforme você marca.",
+                         bg=BG, fg=MUTED, font=font_s, anchor="w", justify="left",
+                         wraplength=540).pack(fill="x", pady=(0, 6))
+                atual = max(0, min(len(FARM_STAGES) - 1, n_vs))
+                for i, (title, resumo, dicas) in enumerate(FARM_STAGES):
+                    etapa_box(title, resumo, dicas, i == atual)
+            else:
+                top = tk.Frame(inner, bg=BG)
+                top.pack(fill="x", pady=(0, 6))
+                tk.Label(top, text="Quantos divines você tem?", bg=BG, fg=FG,
+                         font=font_b).pack(side="left")
+                ent = tk.Entry(top, width=6, bg=BG2, fg=FG, insertbackground=FG, relief="flat",
+                               font=font_b, justify="center")
+                ent.insert(0, str(cfg.get("divines", 0)))
+                ent.pack(side="left", padx=6, ipady=3)
+
+                def salvar_div():
+                    try:
+                        cfg["divines"] = max(0, int(float(ent.get().replace(",", "."))))
+                    except Exception:
+                        cfg["divines"] = 0
+                        ent.delete(0, "end")
+                        ent.insert(0, "0")
+                    save_config(cfg)
+                    draw_tab()
+                tk.Button(top, text="Atualizar", command=salvar_div, bg=ACCENT, fg="#0b0c0f",
+                          relief="flat", font=font_b, padx=10).pack(side="left")
+                ent.bind("<Return>", lambda e: salvar_div())
+                tk.Label(inner, text="Compre de cima para baixo. Cada item só depois que o de cima "
+                                     "estiver resolvido — pular etapa é o que mais trava build.",
+                         bg=BG, fg=MUTED, font=font_s, anchor="w", justify="left",
+                         wraplength=540).pack(fill="x", pady=(0, 6))
+                atual = budget_stage(cfg.get("divines", 0))
+                for st in BUDGET_STAGES:
+                    etapa_box(st[1], st[2], st[3], st is atual)
+                tk.Label(inner, text=ui_text("💡 Os preços mudam toda semana. Passe o mouse no item "
+                                             "dentro do jogo e aperte a tecla de preço (Ctrl+D) para ver "
+                                             "quanto custa hoje."),
+                         bg=BG, fg=WARN_FG, font=font_s, anchor="w", justify="left",
+                         wraplength=540).pack(fill="x", pady=(8, 0))
+
+            tk.Label(inner, text=ui_text(FARM_FOOTER), bg=BG, fg=WARN_FG, font=font_s, anchor="w",
+                     justify="left", wraplength=540).pack(fill="x", pady=(10, 4))
+            links = tk.Frame(inner, bg=BG)
+            links.pack(fill="x", pady=(0, 10))
+            for txt, url in (("poe.ninja (preços)", "https://poe.ninja/"),
+                             ("maxroll (estratégias)", "https://maxroll.gg/poe/category/currency-farming"),
+                             ("Perguntar à IA", None)):
+                tk.Button(links, text=txt, bg=BG2, fg=FG, relief="flat", font=font_s, padx=8,
+                          command=(open_ask if url is None else (lambda u=url: webbrowser.open(u)))
+                          ).pack(side="left", padx=(0, 6))
+
+        set_tab(tab["cur"])
 
     # --- render ---
     check_vars = {}
@@ -4283,7 +4452,7 @@ def run_app():
             title, resumo, dicas = farm_stage(n_vs)
             fbox = tk.Frame(body, bg=BG2, padx=8, pady=6)
             fbox.pack(fill="x", pady=(8, 2))
-            tk.Label(fbox, text="💰 Como farmar divine agora", bg=BG2, fg=ACCENT, font=font_b,
+            tk.Label(fbox, text=ui_text("💰 Como farmar divine agora"), bg=BG2, fg=ACCENT, font=font_b,
                      anchor="w").pack(fill="x")
             tk.Label(fbox, text=title, bg=BG2, fg=FG, font=font_s, anchor="w", justify="left",
                      wraplength=330).pack(fill="x")
@@ -4292,7 +4461,13 @@ def run_app():
             for d in dicas[:2]:
                 tk.Label(fbox, text="• " + d, bg=BG2, fg=FG, font=font_s, anchor="w", justify="left",
                          wraplength=330).pack(fill="x")
-            tk.Button(fbox, text=f"Ver as {len(dicas)} dicas desta etapa ▸", command=open_farm_tips,
+            bst = budget_stage(cfg.get("divines", 0))
+            tk.Label(fbox, text="— Com " + str(cfg.get("divines", 0)) + " divine(s), compre: —",
+                     bg=BG2, fg=ACCENT, font=font_s, anchor="w").pack(fill="x", pady=(6, 0))
+            for d in bst[3][:2]:
+                tk.Label(fbox, text="• " + d, bg=BG2, fg=FG, font=font_s, anchor="w", justify="left",
+                         wraplength=330).pack(fill="x")
+            tk.Button(fbox, text=ui_text("Abrir o guia de divines ▸"), command=open_farm_tips,
                       bg=ACCENT, fg="#0b0c0f", relief="flat", activebackground="#a8f0a8",
                       font=font_b, padx=8).pack(anchor="w", pady=(6, 0))
             for i, u in enumerate(UPGRADES if GUIDE["mode"] == "pconc" else []):
@@ -4415,7 +4590,7 @@ def run_app():
     BAR = {}
 
     def bar_btn(text, cmd, tip_fg=FG):
-        b = tk.Button(bar_btns, text=text, command=cmd, bg=BG2, fg=tip_fg, relief="flat",
+        b = tk.Button(bar_btns, text=ui_text(text), command=cmd, bg=BG2, fg=tip_fg, relief="flat",
                       activebackground="#2a2f3a", activeforeground=ACCENT,
                       font=("Segoe UI", 8), padx=5, pady=0)
         b.pack(side="left", padx=1, pady=4, fill="y")
@@ -4852,7 +5027,7 @@ def run_app():
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
         hh = min(800, sh - 60)
         w.geometry(f"580x{hh}+{(sw - 580) // 2}+{max(10, (sh - hh) // 2)}")
-        tk.Label(w, text="🏠 Início", bg=BG, fg=ACCENT, font=("Segoe UI", 16, "bold")).pack(pady=(12, 0))
+        tk.Label(w, text=ui_text("🏠 Início"), bg=BG, fg=ACCENT, font=("Segoe UI", 16, "bold")).pack(pady=(12, 0))
         lbl_cur = tk.Label(w, text="", bg=BG, fg=MUTED, font=font_s)
         lbl_cur.pack(pady=(0, 6))
 
@@ -4875,6 +5050,7 @@ def run_app():
         refresh_cur()
 
         def card(title, desc, btn_text=None, cmd=None):
+            title, btn_text = ui_text(title), ui_text(btn_text)
             f = tk.Frame(w, bg=BG2, padx=12, pady=10)
             f.pack(fill="x", padx=16, pady=5)
             tk.Label(f, text=title, bg=BG2, fg=FG, font=font_b, anchor="w").pack(fill="x")
@@ -6033,7 +6209,7 @@ def run_app():
         w.attributes("-topmost", True)
         w.geometry("520x560")
         has_key = bool(cfg.get("claude_key"))
-        tk.Label(w, text="Pergunte à IA sobre a sua build", bg=BG, fg=ACCENT, font=font_b).pack(
+        tk.Label(w, text=ui_text("Pergunte à IA sobre a sua build"), bg=BG, fg=ACCENT, font=font_b).pack(
             anchor="w", padx=10, pady=(8, 0))
         mode_txt = ("Modo: resposta aqui dentro (chave configurada)" if has_key else
                     "Modo: abre o Claude no navegador com tudo pronto (é só colar com Ctrl+V)")
@@ -6062,7 +6238,7 @@ def run_app():
         out.pack(fill="both", expand=True, padx=10, pady=(4, 4))
         bottom = tk.Frame(w, bg=BG)
         bottom.pack(fill="x", padx=10, pady=(0, 8))
-        tk.Button(bottom, text="⚙ Chave (opcional)", command=set_claude_key, bg=BG2, fg=MUTED, relief="flat",
+        tk.Button(bottom, text=ui_text("⚙ Chave (opcional)"), command=set_claude_key, bg=BG2, fg=MUTED, relief="flat",
                   font=font_s).pack(side="left")
         tk.Button(bottom, text="Nova conversa", bg=BG2, fg=MUTED, relief="flat", font=font_s,
                   command=lambda: (ask_win.__setitem__("hist", []), out.delete("1.0", "end"))).pack(side="left",
