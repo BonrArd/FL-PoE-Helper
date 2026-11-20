@@ -6198,6 +6198,7 @@ def run_app():
                 print("SMOKE_WINDOWS_DONE", flush=True)
                 return
             name, fn = steps[i]
+            print("SMOKE_TRY " + name, flush=True)
             try:
                 if fn is None:
                     cfg.setdefault("checks", {})
@@ -6215,6 +6216,8 @@ def run_app():
             root.after(400, lambda: _smoke_step(i + 1))
         root.after(1500, lambda: _smoke_step(0))
 
+    if os.environ.get("FLPOE_SMOKE"):
+        print("SMOKE_BUILT", flush=True)
     root.mainloop()
     if os.environ.get("FLPOE_SMOKE") and smoke_err:
         sys.exit(1)
